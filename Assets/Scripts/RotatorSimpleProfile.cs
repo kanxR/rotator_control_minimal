@@ -1,18 +1,40 @@
-using UnityEngine;
+using LSL;
 using System.Collections;
-using System.Net.Sockets;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class RotatorSimpleProfile : MonoBehaviour
 {
 
+    //private StreamOutlet outlet;
+
+    //// LSL Stream info definition
+    //private const string StreamName = "UnityChairRotationStream";
+    //private const string StreamType = "ChairRotation";
+    //private const int ChannelCount = 1;
+    //private const double NominalSamplingRate = 0.0; // non-periodic event=>0
+    //private const LSL.channel_format_t ChannelFormat = LSL.channel_format_t.cf_string;
+    //private const string SourceID = "UnityChairRotation_12345";
+
+    // LSL Chair Rotation Stream
+    private StreamOutlet chairRotationOutlet;
+    private const string ChairRotationStreamName = "UnityChairRotationStream";
+    private const string ChairRotationStreamType = "ChairRotationMarkers";
+    private const int ChairRotationChannelCount = 1;
+    private const double ChairRotationNominalSamplingRate = 0.0; // non-periodic
+    private const LSL.channel_format_t ChairRotationChannelFormat = LSL.channel_format_t.cf_string;
+    private const string ChairRotationSourceID = "UnityChairRotation_12345";
+
+
+
     [Header("Communication settings")]
     [Range(1, 60)]
     public float PackagePerSecond = 30;
     private int remotePort = 42424;
-    private string remoteIP = "100.1.1.101";
+    private string remoteIP = "127.179.177.25";
     private int localPort = 42434;
     private UdpClient sender;
     private float sendRate;
@@ -32,6 +54,27 @@ public class RotatorSimpleProfile : MonoBehaviour
     private void Start()
     {
         InitSender();
+
+        // Initialize LSL Chair Rotation Stream
+        StreamInfo chairRotationInfo = new StreamInfo(
+            ChairRotationStreamName,
+            ChairRotationStreamType,
+            ChairRotationChannelCount,
+            ChairRotationNominalSamplingRate,
+            ChairRotationChannelFormat,
+            ChairRotationSourceID
+        );
+        chairRotationOutlet = new StreamOutlet(chairRotationInfo);
+    }
+
+    private void SendChairRotationMarker(string marker)
+    {
+        if (chairRotationOutlet != null)
+        {
+            string[] sample = { marker };
+            chairRotationOutlet.push_sample(sample);
+            Debug.Log("Sent Chair Rotation Marker: " + marker);
+        }
     }
 
     private void Update()
@@ -90,6 +133,9 @@ public class RotatorSimpleProfile : MonoBehaviour
             CancelInvoke("Send");
             sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
             Debug.Log("Rotation stopped completely.");
+
+            // Send LSL marker for rotation end
+            SendChairRotationMarker("rotation_ended");
         }
     }
 
@@ -100,6 +146,9 @@ public class RotatorSimpleProfile : MonoBehaviour
         lastSendTime = Time.time;
         InvokeRepeating("Send", 0, sendRate);
         sender.Send(Encoding.ASCII.GetBytes("start"), "start".Length);
+
+        // Send LSL marker for rotation start
+        SendChairRotationMarker("rotation_started");
     }
 
     public void StopRotation()
@@ -110,6 +159,8 @@ public class RotatorSimpleProfile : MonoBehaviour
             IsSending = false;
             isStopping = true; // Enter deceleration phase
             lastSendTime = Time.time; // Reset timing for consistent deltaTime
+
+            SendChairRotationMarker("rotation_decelerating");
         }
 
         if (rotationCoroutine != null)

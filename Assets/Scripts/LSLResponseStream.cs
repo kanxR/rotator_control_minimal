@@ -27,10 +27,16 @@ public class LSLMarkerStream : MonoBehaviour
 
     void Update()
     {
-        // Send marker: Y --- Feeling rotation
-        if (Input.GetKeyDown(KeyCode.Y))
+        // Send marker: R --- Feeling clockwise rotation
+        if (Input.GetKeyDown(KeyCode.R))
         {
-            SendMarker("Y_key_pressed");
+            SendMarker("R_key_pressed");
+        }
+
+        // Send marker: L --- Feeling counter clockwise rotation
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            SendMarker("L_key_pressed");
         }
 
         // Send marker: N --- Feeling stable
