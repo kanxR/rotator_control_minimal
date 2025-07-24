@@ -88,7 +88,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3299395807914353258}
   - component: {fileID: 2510612505076601180}
-  - component: {fileID: 7416574462932647720}
   - component: {fileID: 8105643234446302385}
   m_Layer: 0
   m_Name: Controller
@@ -124,7 +123,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_Actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b,
+    type: 3}
   m_NotificationBehavior: 0
   m_UIInputModule: {fileID: 0}
   m_DeviceLostEvent:
@@ -142,20 +142,6 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
---- !u!114 &7416574462932647720
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7a44463e8225a2943a4c010f8fbec684, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  packagePerSecond: 30
-  f_velocity: 0
 --- !u!114 &8105643234446302385
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168,7 +154,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  packagePerSecond: 30
-  f_velocity: 30
-  rotationDuration: 60
-  isSending: 0
+  UseChairConnection: 0
+  PackagePerSecond: 30
+  RepetitionsPerCondition: 5
+  AccelerationDuration: 5
+  StableRotationDuration: 5
+  DecelerationDuration: 5
+  InterTrialInterval: 10
+  HighSpeed: 120
+  LowSpeed: 90
