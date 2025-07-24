@@ -16,10 +16,10 @@ public class RotatorSimpleProfile : MonoBehaviour
     private const string ChairRotationStreamType = "ChairRotationMarkers";
 
     [Header("Communication Settings")]
-    public bool UseChairConnection = true; // ★ トグルを追加：これをオフにするとチェアに接続しない
+    public bool UseChairConnection = true; // Add a toggle: if False, it doesn't connect to the chair 
     [Range(1, 60)]
     public float PackagePerSecond = 30;
-    private int remotePort = 42424;
+    private int remotePort = 42424;//42425? as in UDPListener.cs
     private string remoteIP = "127.179.177.25";
     private int localPort = 42434;
     private UdpClient sender;
@@ -32,7 +32,7 @@ public class RotatorSimpleProfile : MonoBehaviour
     public float AccelerationDuration = 5.0f;
     public float StableRotationDuration = 5.0f;
     public float DecelerationDuration = 5.0f;
-    public float InterTrialInterval = 10.0f;
+    public float InterTrialInterval = 10.0f;// Interval between trials in seconds
     public float HighSpeed = 120.0f; // degrees/sec
     public float LowSpeed = 90.0f;  // degrees/sec
 
@@ -59,7 +59,7 @@ public class RotatorSimpleProfile : MonoBehaviour
         // Press Space to start the whole experiment
         if (Keyboard.current.spaceKey.wasPressedThisFrame && !isExperimentRunning)
         {
-            Debug.Log("Experiment Started!");
+            Debug.Log("Space pressed - Start Rotation");
             isExperimentRunning = true;
             StartCoroutine(RunExperiment());
         }
@@ -67,18 +67,18 @@ public class RotatorSimpleProfile : MonoBehaviour
         // Press S for an emergency stop
         if (Keyboard.current.sKey.wasPressedThisFrame && isExperimentRunning)
         {
-            Debug.Log("Emergency Stop Triggered!");
+            Debug.Log("S pressed - Emergency Stop");
             StopAllCoroutines();
             StartCoroutine(ForceStopRotation());
         }
     }
 
-    /// <summary>
+      
     /// Initializes the UDP sender for communicating with the chair.
-    /// </summary>
+      
     private void InitSender()
     {
-        // ★ チェア接続が有効な場合のみUDPクライアントを初期化・接続
+        // Initialize the UDP sender only if UseChairConnection is true
         if (UseChairConnection)
         {
             sendRate = 1.0f / PackagePerSecond;
@@ -93,9 +93,9 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
     }
 
-    /// <summary>
+
     /// Initializes the LSL outlet for sending markers.
-    /// </summary>
+    /// used in "Start()" and "RunSingleTrial()" methods.
     private void InitLSL()
     {
         StreamInfo chairRotationInfo = new StreamInfo(
@@ -108,9 +108,7 @@ public class RotatorSimpleProfile : MonoBehaviour
         chairRotationOutlet = new StreamOutlet(chairRotationInfo);
     }
 
-    /// <summary>
     /// Creates and shuffles the list of all trial conditions.
-    /// </summary>
     private void CreateRandomizedTrialList()
     {
         trialList = new List<TrialCondition>();
@@ -130,9 +128,7 @@ public class RotatorSimpleProfile : MonoBehaviour
         Debug.Log($"Created a randomized trial list with {trialList.Count} trials.");
     }
 
-    /// <summary>
     /// Main coroutine that iterates through the randomized trial list.
-    /// </summary>
     private IEnumerator RunExperiment()
     {
         yield return new WaitForSeconds(2.0f); // A brief pause before starting
@@ -151,16 +147,16 @@ public class RotatorSimpleProfile : MonoBehaviour
 
         Debug.Log("--- Experiment Finished! ---");
         isExperimentRunning = false;
-        // ★ チェア接続が有効な場合のみUDPコマンドを送信
+        // Send commad to stop the chair if UseChairConnection ==true (the chair is connected)
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
         }
     }
 
-    /// <summary>
+      
     /// Coroutine that executes a single trial with its 4 phases.
-    /// </summary>
+      
     /// <param name="condition">The condition for the current trial.</param>
     private IEnumerator RunSingleTrial(TrialCondition condition)
     {
@@ -188,7 +184,7 @@ public class RotatorSimpleProfile : MonoBehaviour
                 break;
         }
 
-        // ★ チェア接続が有効な場合のみUDPコマンドを送信
+        // Send the UDP command only if UseChairConnection is true
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes("start"), "start".Length);
@@ -210,23 +206,23 @@ public class RotatorSimpleProfile : MonoBehaviour
         SendMarker($"stop_trial_{condition}");
         currentVelocity = 0;
         string stopMessage = string.Format("udpvelocity {0}", currentVelocity);
-        // ★ チェア接続が有効な場合のみUDPコマンドを送信
+        // Send UDP markers only if UseChairConnection is true
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes(stopMessage), stopMessage.Length);
         }
     }
 
-    /// <summary>
+      
     /// A generic coroutine to smoothly change speed over a given duration.
-    /// </summary>
+      
     private IEnumerator ChangeSpeed(float startSpeed, float endSpeed, float duration)
     {
         float elapsedTime = 0;
         while (elapsedTime < duration)
         {
             currentVelocity = Mathf.Lerp(startSpeed, endSpeed, elapsedTime / duration);
-            // ★ チェア接続が有効な場合のみUDPコマンドを送信
+            // Send UDP command only if UseChairConnection is true
             if (UseChairConnection && sender != null)
             {
                 string message = string.Format("udpvelocity {0}", currentVelocity);
@@ -238,7 +234,7 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
         // Ensure the final speed is set precisely
         currentVelocity = endSpeed;
-        // ★ チェア接続が有効な場合のみUDPコマンドを送信
+        // Send UDP command one last time to ensure the final speed is sent
         if (UseChairConnection && sender != null)
         {
             string finalMessage = string.Format("udpvelocity {0}", currentVelocity);
@@ -246,14 +242,14 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
     }
 
-    /// <summary>
+      
     /// Coroutine for a forced, rapid stop.
-    /// </summary>
+      
     private IEnumerator ForceStopRotation()
     {
         isExperimentRunning = false;
         yield return StartCoroutine(ChangeSpeed(currentVelocity, 0, DecelerationDuration)); // Use normal deceleration time
-        // ★ チェア接続が有効な場合のみUDPコマンドを送信
+        // Send UDP command to stop the chair only if UseChairConnection is true
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
@@ -261,9 +257,9 @@ public class RotatorSimpleProfile : MonoBehaviour
         Debug.Log("Rotation stopped completely.");
     }
 
-    /// <summary>
+      
     /// Sends a string marker to the LSL outlet.
-    /// </summary>
+      
     private void SendMarker(string marker)
     {
         if (chairRotationOutlet != null)
@@ -274,9 +270,9 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
     }
 
-    /// <summary>
+      
     /// Ensures UDP client is closed when the application quits.
-    /// </summary>
+      
     private void OnApplicationQuit()
     {
         if (sender != null)
