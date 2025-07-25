@@ -1,14 +1,14 @@
 using UnityEngine;
 using LSL;
 
-public class LSLMarkerStream : MonoBehaviour
+public class LSLResponseStream : MonoBehaviour
 {
     
     private StreamOutlet outlet;
 
     // LSL Stream info definition
-    private const string StreamName = "UnityMarkerStream";
-    private const string StreamType = "Markers";
+    private const string StreamName = "UnityResponseStream";
+    private const string StreamType = "ResponseMarkers";
     private const int ChannelCount = 1;
     private const double NominalSamplingRate = 0.0; // non-periodic event=>0
     private const LSL.channel_format_t ChannelFormat = LSL.channel_format_t.cf_string;
@@ -22,7 +22,7 @@ public class LSLMarkerStream : MonoBehaviour
         //Create Outlet
         outlet = new StreamOutlet(streamInfo);
 
-        Debug.Log("Starting LSL marker stream.");
+        Debug.Log("Starting LSL Response stream.");
     }
 
     void Update()
@@ -56,6 +56,6 @@ public class LSLMarkerStream : MonoBehaviour
         outlet.push_sample(marker);
 
         // To check in Unity console
-        Debug.Log("Sent LSL Marker: " + markerText);
+        Debug.Log("Sent LSL Response: " + markerText);
     }
 }
