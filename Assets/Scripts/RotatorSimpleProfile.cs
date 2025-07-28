@@ -1,14 +1,15 @@
 using LSL;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq; // Required for randomization (OrderBy)
+using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class RotatorSimpleProfile : MonoBehaviour
+public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 {
     // LSL Marker Stream
     private StreamOutlet chairRotationOutlet;
@@ -16,27 +17,25 @@ public class RotatorSimpleProfile : MonoBehaviour
     private const string ChairRotationStreamType = "ChairRotationMarkers";
 
     [Header("Communication Settings")]
-    public bool UseChairConnection = true; // Add a toggle: if False, it doesn't connect to the chair 
+    public bool UseChairConnection = true;
     [Range(1, 60)]
     public float PackagePerSecond = 30;
-    private int remotePort = 42424;//42425? as in UDPListener.cs
+    private int remotePort = 42424;
     private string remoteIP = "100.1.1.101";
     private int localPort = 42434;
     private UdpClient sender;
     private float sendRate;
-    private bool isExperimentRunning = false;
-    private float currentVelocity = 0f;
 
     [Header("Experiment Settings")]
-    public int RepetitionsPerCondition = 5; // This will result in 5 * 4 = 20 trials
+    public int RepetitionsPerCondition = 5;
     public float AccelerationDuration = 5.0f;
     public float StableRotationDuration = 5.0f;
     public float DecelerationDuration = 5.0f;
-    public float InterTrialInterval = 10.0f;// Interval between trials in seconds
-    public float HighSpeed = 120.0f; // degrees/sec
-    public float LowSpeed = 90.0f;  // degrees/sec
+    public float InterTrialInterval = 10.0f;
+    public float HighSpeed = 120.0f;
+    public float LowSpeed = 90.0f;
 
-    // Enum to define the trial conditions clearly
+    // Enum for trial conditions
     private enum TrialCondition
     {
         ClockwiseHigh,
@@ -45,43 +44,55 @@ public class RotatorSimpleProfile : MonoBehaviour
         CounterClockwiseLow
     }
 
+    // Enum for the state machine logic
+    private enum ExperimentPhase
+    {
+        Idle,
+        Acceleration,
+        StableRotation,
+        Deceleration,
+        InterTrialInterval
+    }
+
     private List<TrialCondition> trialList;
+    private bool isExperimentRunning = false;
+
+    // State machine variables
+    private ExperimentPhase currentPhase = ExperimentPhase.Idle;
+    private int currentTrialIndex = 0;
+    private float phaseTimer = 0f;
+    private float currentVelocity = 0f;
+    private float targetSpeed = 0f;
+    private float startSpeed = 0f;
+
 
     private void Start()
     {
         InitSender();
         InitLSL();
         CreateRandomizedTrialList();
+        sendRate = 1.0f / PackagePerSecond;
     }
 
     private void Update()
     {
-        // Press Space to start the whole experiment
         if (Keyboard.current.spaceKey.wasPressedThisFrame && !isExperimentRunning)
         {
-            Debug.Log("Space pressed - Start Rotation");
-            isExperimentRunning = true;
-            StartCoroutine(RunExperiment());
+            Debug.Log("Space pressed - Starting Experiment");
+            StartExperiment();
         }
 
-        // Press S for an emergency stop
         if (Keyboard.current.sKey.wasPressedThisFrame && isExperimentRunning)
         {
             Debug.Log("S pressed - Emergency Stop");
-            StopAllCoroutines();
-            StartCoroutine(ForceStopRotation());
+            EmergencyStop();
         }
     }
 
-      
-    /// Initializes the UDP sender for communicating with the chair.
-      
     private void InitSender()
     {
-        // Initialize the UDP sender only if UseChairConnection is true
         if (UseChairConnection)
         {
-            sendRate = 1.0f / PackagePerSecond;
             sender = new UdpClient(localPort, AddressFamily.InterNetwork);
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(remoteIP), remotePort);
             sender.Connect(endPoint);
@@ -93,9 +104,6 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
     }
 
-
-    /// Initializes the LSL outlet for sending markers.
-    /// used in "Start()" and "RunSingleTrial()" methods.
     private void InitLSL()
     {
         StreamInfo chairRotationInfo = new StreamInfo(
@@ -108,7 +116,6 @@ public class RotatorSimpleProfile : MonoBehaviour
         chairRotationOutlet = new StreamOutlet(chairRotationInfo);
     }
 
-    /// Creates and shuffles the list of all trial conditions.
     private void CreateRandomizedTrialList()
     {
         trialList = new List<TrialCondition>();
@@ -120,50 +127,38 @@ public class RotatorSimpleProfile : MonoBehaviour
                 trialList.Add(condition);
             }
         }
-
-        // Randomize the list using LINQ OrderBy and a random Guid
         System.Random rng = new System.Random();
         trialList = trialList.OrderBy(a => rng.Next()).ToList();
-
         Debug.Log($"Created a randomized trial list with {trialList.Count} trials.");
     }
 
-    /// Main coroutine that iterates through the randomized trial list.
-    private IEnumerator RunExperiment()
+    private void StartExperiment()
     {
-        yield return new WaitForSeconds(2.0f); // A brief pause before starting
-
-        for (int i = 0; i < trialList.Count; i++)
+        if (trialList == null || trialList.Count == 0)
         {
-            Debug.Log($"--- Starting Trial {i + 1}/{trialList.Count}: {trialList[i]} ---");
-            yield return StartCoroutine(RunSingleTrial(trialList[i]));
-
-            if (i < trialList.Count - 1)
-            {
-                Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");
-                yield return new WaitForSeconds(InterTrialInterval);
-            }
+            Debug.LogError("Trial list is empty. Cannot start experiment.");
+            return;
         }
-
-        Debug.Log("--- Experiment Finished! ---");
-        isExperimentRunning = false;
-        // Send commad to stop the chair if UseChairConnection ==true (the chair is connected)
-        if (UseChairConnection && sender != null)
-        {
-            sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
-        }
+        isExperimentRunning = true;
+        currentTrialIndex = 0;
+        StartNewTrial();
+        InvokeRepeating(nameof(UpdateTrialState), 0f, sendRate);
     }
 
-      
-    /// Coroutine that executes a single trial with its 4 phases.
-      
-    /// <param name="condition">The condition for the current trial.</param>
-    private IEnumerator RunSingleTrial(TrialCondition condition)
+    private void StartNewTrial()
     {
-        float topSpeed = 0;
-        float direction = 1.0f; // 1 for clockwise, -1 for counter-clockwise
+        if (currentTrialIndex >= trialList.Count)
+        {
+            FinishExperiment();
+            return;
+        }
 
-        // Determine speed and direction from the condition
+        TrialCondition condition = trialList[currentTrialIndex];
+        Debug.Log($"--- Starting Trial {currentTrialIndex + 1}/{trialList.Count}: {condition} ---");
+
+        float topSpeed = 0;
+        float direction = 1.0f;
+
         switch (condition)
         {
             case TrialCondition.ClockwiseHigh:
@@ -184,83 +179,136 @@ public class RotatorSimpleProfile : MonoBehaviour
                 break;
         }
 
-        // Send the UDP command only if UseChairConnection is true
+        targetSpeed = topSpeed * direction;
+
+        // Send "start" command to the chair at the beginning of the first phase
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes("start"), "start".Length);
         }
 
-        // --- 1. Acceleration Phase ---
-        SendMarker($"start_acceleration_{condition}");
-        yield return StartCoroutine(ChangeSpeed(0, topSpeed * direction, AccelerationDuration));
-
-        // --- 2. Stable Rotation Phase ---
-        SendMarker($"start_stable_{condition}");
-        yield return StartCoroutine(ChangeSpeed(topSpeed * direction, topSpeed * direction, StableRotationDuration));
-
-        // --- 3. Deceleration Phase ---
-        SendMarker($"start_deceleration_{condition}");
-        yield return StartCoroutine(ChangeSpeed(topSpeed * direction, 0, DecelerationDuration));
-
-        // --- 4. Stop Phase ---
-        SendMarker($"stop_trial_{condition}");
-        currentVelocity = 0;
-        string stopMessage = string.Format("udpvelocity {0}", currentVelocity);
-        // Send UDP markers only if UseChairConnection is true
-        if (UseChairConnection && sender != null)
-        {
-            sender.Send(Encoding.ASCII.GetBytes(stopMessage), stopMessage.Length);
-        }
+        // Transition to the first phase: Acceleration
+        TransitionToPhase(ExperimentPhase.Acceleration);
     }
 
-      
-    /// A generic coroutine to smoothly change speed over a given duration.
-      
-    private IEnumerator ChangeSpeed(float startSpeed, float endSpeed, float duration)
+    private void UpdateTrialState()
     {
-        float elapsedTime = 0;
-        while (elapsedTime < duration)
+        if (!isExperimentRunning) return;
+
+        phaseTimer += sendRate; // Increment timer by the update interval
+
+        switch (currentPhase)
         {
-            currentVelocity = Mathf.Lerp(startSpeed, endSpeed, elapsedTime / duration);
+            case ExperimentPhase.Acceleration:
+                currentVelocity = Mathf.Lerp(startSpeed, targetSpeed, phaseTimer / AccelerationDuration);
+                if (phaseTimer >= AccelerationDuration)
+                {
+                    currentVelocity = targetSpeed;
+                    TransitionToPhase(ExperimentPhase.StableRotation);
+                }
+                break;
+
+            case ExperimentPhase.StableRotation:
+                currentVelocity = targetSpeed; // Keep speed constant
+                if (phaseTimer >= StableRotationDuration)
+                {
+                    TransitionToPhase(ExperimentPhase.Deceleration);
+                }
+                break;
+
+            case ExperimentPhase.Deceleration:
+                currentVelocity = Mathf.Lerp(startSpeed, 0, phaseTimer / DecelerationDuration);
+                if (phaseTimer >= DecelerationDuration)
+                {
+                    currentVelocity = 0;
+                    TrialCondition condition = trialList[currentTrialIndex];
+                    SendMarker($"stop_trial_{condition}");
+                    TransitionToPhase(ExperimentPhase.InterTrialInterval);
+                }
+                break;
+
+            case ExperimentPhase.InterTrialInterval:
+                currentVelocity = 0; // Ensure chair is stopped
+                if (phaseTimer >= InterTrialInterval)
+                {
+                    currentTrialIndex++;
+                    StartNewTrial();
+                }
+                break;
+        }
+
+        // Send velocity data via UDP
+        if (UseChairConnection && sender != null)
+        {
+            string message = string.Format("udpvelocity {0}", currentVelocity);
+            sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
             Debug.Log("current speed: " + currentVelocity);
-            // Send UDP command only if UseChairConnection is true
-            if (UseChairConnection && sender != null)
-            {
-                string message = string.Format("udpvelocity {0}", currentVelocity);
-                sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
-            }
-
-            elapsedTime += Time.deltaTime;
-            yield return null; // Wait for the next frame
-        }
-        // Ensure the final speed is set precisely
-        currentVelocity = endSpeed;
-        // Send UDP command one last time to ensure the final speed is sent
-        if (UseChairConnection && sender != null)
-        {
-            string finalMessage = string.Format("udpvelocity {0}", currentVelocity);
-            sender.Send(Encoding.ASCII.GetBytes(finalMessage), finalMessage.Length);
         }
     }
 
-      
-    /// Coroutine for a forced, rapid stop.
-      
-    private IEnumerator ForceStopRotation()
+    private void TransitionToPhase(ExperimentPhase nextPhase)
     {
+        currentPhase = nextPhase;
+        phaseTimer = 0f;
+        startSpeed = currentVelocity; // The start speed for the next phase is the current speed
+
+        TrialCondition condition = trialList[currentTrialIndex];
+        string marker = "";
+
+        switch (nextPhase)
+        {
+            case ExperimentPhase.Acceleration:
+                marker = $"start_acceleration_{condition}";
+                targetSpeed = (condition.ToString().Contains("High") ? HighSpeed : LowSpeed) * (condition.ToString().Contains("Counter") ? -1 : 1);
+                break;
+            case ExperimentPhase.StableRotation:
+                marker = $"start_stable_{condition}";
+                break;
+            case ExperimentPhase.Deceleration:
+                marker = $"start_deceleration_{condition}";
+                targetSpeed = 0; // Target for deceleration is always 0
+                break;
+            case ExperimentPhase.InterTrialInterval:
+                Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");
+                // No marker needed here, stop marker was sent at end of deceleration
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(marker))
+        {
+            SendMarker(marker);
+        }
+    }
+
+    private void FinishExperiment()
+    {
+        Debug.Log("--- Experiment Finished! ---");
         isExperimentRunning = false;
-        yield return StartCoroutine(ChangeSpeed(currentVelocity, 0, DecelerationDuration)); // Use normal deceleration time
-        // Send UDP command to stop the chair only if UseChairConnection is true
+        currentPhase = ExperimentPhase.Idle;
+        CancelInvoke(nameof(UpdateTrialState));
+        StopChair();
+    }
+
+    private void EmergencyStop()
+    {
+        Debug.Log("Rotation stopped completely by user.");
+        isExperimentRunning = false;
+        currentPhase = ExperimentPhase.Idle;
+        CancelInvoke(nameof(UpdateTrialState));
+        StopChair();
+    }
+
+    private void StopChair()
+    {
+        currentVelocity = 0;
         if (UseChairConnection && sender != null)
         {
+            string stopMessage = string.Format("udpvelocity {0}", currentVelocity);
+            sender.Send(Encoding.ASCII.GetBytes(stopMessage), stopMessage.Length);
             sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
         }
-        Debug.Log("Rotation stopped completely.");
     }
 
-      
-    /// Sends a string marker to the LSL outlet.
-      
     private void SendMarker(string marker)
     {
         if (chairRotationOutlet != null)
@@ -271,15 +319,14 @@ public class RotatorSimpleProfile : MonoBehaviour
         }
     }
 
-      
-    /// Ensures UDP client is closed when the application quits.
-      
     private void OnApplicationQuit()
     {
         if (sender != null)
         {
-            // Ensure the chair is stopped before quitting
-            StartCoroutine(ForceStopRotation());
+            if (isExperimentRunning)
+            {
+                EmergencyStop();
+            }
             sender.Close();
         }
     }
