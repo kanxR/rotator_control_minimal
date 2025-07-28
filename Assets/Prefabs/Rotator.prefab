@@ -154,12 +154,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseChairConnection: 1
+  UseChairConnection: 0
   PackagePerSecond: 30
   RepetitionsPerCondition: 5
-  AccelerationDuration: 5
-  StableRotationDuration: 5
-  DecelerationDuration: 5
+  AccelerationDuration: 2
+  StableRotationDuration: 10
+  MidSpeedRotationDuration: 10
+  DecelerationDuration: 2
   InterTrialInterval: 10
-  HighSpeed: 120
-  LowSpeed: 90
+  HighSpeed: 90
+  LowSpeed: 60

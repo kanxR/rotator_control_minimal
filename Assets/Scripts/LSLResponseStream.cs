@@ -11,7 +11,7 @@ public class LSLResponseStream : MonoBehaviour
     private const string StreamType = "ResponseMarkers";
     private const int ChannelCount = 1;
     private const double NominalSamplingRate = 0.0; // non-periodic event=>0
-    private const LSL.channel_format_t ChannelFormat = LSL.channel_format_t.cf_string;
+    private const LSL.channel_format_t ChannelFormat = LSL.channel_format_t.cf_int32;// Using integers for markers
     private const string SourceID = "UnityMarker_12345";
 
     void Start()
@@ -30,32 +30,32 @@ public class LSLResponseStream : MonoBehaviour
         // Send marker: R --- Feeling clockwise rotation
         if (Input.GetKeyDown(KeyCode.R))
         {
-            SendMarker("R_key_pressed");
+            SendMarker(7);
         }
 
         // Send marker: L --- Feeling counter clockwise rotation
         if (Input.GetKeyDown(KeyCode.L))
         {
-            SendMarker("L_key_pressed");
+            SendMarker(8);
         }
 
         // Send marker: N --- Feeling stable
         if (Input.GetKeyDown(KeyCode.N))
         {
-            SendMarker("N_key_pressed");
+            SendMarker(9);
         }
     }
 
    
-    void SendMarker(string markerText)
+    void SendMarker(int responseValue)
     {
         // Prepare the markers as string array
-        string[] marker = { markerText };
+        int[] marker = { responseValue };
 
         // Push marker to LSL
         outlet.push_sample(marker);
 
         // To check in Unity console
-        Debug.Log("Sent LSL Response: " + markerText);
+        Debug.Log("Sent LSL Response: " + responseValue);
     }
 }

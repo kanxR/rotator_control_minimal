@@ -1,10 +1,11 @@
 using LSL;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
+//using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+//using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -28,9 +29,10 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
     [Header("Experiment Settings")]
     public int RepetitionsPerCondition = 5;
-    public float AccelerationDuration = 5.0f;
-    public float StableRotationDuration = 5.0f;
-    public float DecelerationDuration = 5.0f;
+    public float AccelerationDuration = 2.0f;
+    public float StableRotationDuration = 10.0f;
+    public float MidSpeedRotationDuration = 10.0f;
+    public float DecelerationDuration = 2.0f;
     public float InterTrialInterval = 10.0f;
     public float HighSpeed = 120.0f;
     public float LowSpeed = 90.0f;
@@ -50,7 +52,9 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         Idle,
         Acceleration,
         StableRotation,
-        Deceleration,
+        DecelerationToMid, 
+        StableRotationMid,
+        DecelerationToStop,
         InterTrialInterval
     }
 
@@ -110,7 +114,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
             ChairRotationStreamName,
             ChairRotationStreamType,
             1, 0.0,
-            LSL.channel_format_t.cf_string,
+            LSL.channel_format_t.cf_int32,// Use cf_string for string markers
             "UnityChairRotation_Automated"
         );
         chairRotationOutlet = new StreamOutlet(chairRotationInfo);
@@ -212,17 +216,33 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 currentVelocity = targetSpeed; // Keep speed constant
                 if (phaseTimer >= StableRotationDuration)
                 {
-                    TransitionToPhase(ExperimentPhase.Deceleration);
+                    TransitionToPhase(ExperimentPhase.DecelerationToMid);
                 }
                 break;
 
-            case ExperimentPhase.Deceleration:
+            case ExperimentPhase.DecelerationToMid:
                 currentVelocity = Mathf.Lerp(startSpeed, 0, phaseTimer / DecelerationDuration);
                 if (phaseTimer >= DecelerationDuration)
                 {
-                    currentVelocity = 0;
-                    TrialCondition condition = trialList[currentTrialIndex];
-                    SendMarker($"stop_trial_{condition}");
+                    currentVelocity = targetSpeed;
+                    TransitionToPhase(ExperimentPhase.StableRotationMid);
+                }
+                break;
+
+            case ExperimentPhase.StableRotationMid:
+                currentVelocity = targetSpeed; // Keep speed constant
+                if (phaseTimer >= MidSpeedRotationDuration)
+                {
+                    TransitionToPhase(ExperimentPhase.DecelerationToStop);
+                }
+                break;
+
+            case ExperimentPhase.DecelerationToStop:
+                currentVelocity = Mathf.Lerp(startSpeed, 0, phaseTimer / DecelerationDuration);
+                if (phaseTimer >= DecelerationDuration)
+                {
+                    currentVelocity = 0; // Ensure chair is stopped
+                    SendMarker(6);
                     TransitionToPhase(ExperimentPhase.InterTrialInterval);
                 }
                 break;
@@ -253,20 +273,27 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         startSpeed = currentVelocity; // The start speed for the next phase is the current speed
 
         TrialCondition condition = trialList[currentTrialIndex];
-        string marker = "";
+        int marker = 0;//0 means no marker sent
 
         switch (nextPhase)
         {
             case ExperimentPhase.Acceleration:
-                marker = $"start_acceleration_{condition}";
+                marker = 1;
                 targetSpeed = (condition.ToString().Contains("High") ? HighSpeed : LowSpeed) * (condition.ToString().Contains("Counter") ? -1 : 1);
                 break;
             case ExperimentPhase.StableRotation:
-                marker = $"start_stable_{condition}";
+                marker = 2;
                 break;
-            case ExperimentPhase.Deceleration:
-                marker = $"start_deceleration_{condition}";
-                targetSpeed = 0; // Target for deceleration is always 0
+            case ExperimentPhase.DecelerationToMid:
+                marker = 3;
+                targetSpeed = startSpeed * 0.5f; //Target is half of the top speed (current "startSpeed")
+                break;
+            case ExperimentPhase.StableRotationMid: 
+                marker = 4;
+                break;
+            case ExperimentPhase.DecelerationToStop:
+                marker = 5;
+                targetSpeed = 0; // Target is a full stop
                 break;
             case ExperimentPhase.InterTrialInterval:
                 Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");
@@ -274,7 +301,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
         }
 
-        if (!string.IsNullOrEmpty(marker))
+        if (marker != 0)
         {
             SendMarker(marker);
         }
@@ -309,13 +336,27 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         }
     }
 
-    private void SendMarker(string marker)
+    //private int GetMarkerCode(string marker)
+    //{
+    //    switch (marker)
+    //    {
+    //        case string s when s.Contains("start_acceleration"): return 1;
+    //        case string s when s.Contains("start_stable"): return 2;
+    //        case string s when s.Contains("start_deceleration_mid"): return 3;
+    //        case string s when s.Contains("start_stable_mid"): return 4;
+    //        case string s when s.Contains("start_deceleration_to_stop"): return 5;
+    //        case string s when s.Contains("stop"): return 6;
+    //        default: return 0;
+    //    }
+    //}
+
+    private void SendMarker(int markerValue)
     {
         if (chairRotationOutlet != null)
         {
-            string[] sample = { marker };
+            int[] sample = { markerValue };
             chairRotationOutlet.push_sample(sample);
-            Debug.Log("Sent LSL Marker: " + marker);
+            Debug.Log("Sent LSL Marker: " + sample[0]);
         }
     }
 
