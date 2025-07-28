@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.12731715, g: 0.13414735, b: 0.121078536, a: 1}
+  m_IndirectSpecularColor: {r: 0.12731749, g: 0.13414757, b: 0.1210787, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -312,8 +312,48 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
+      propertyPath: LowSpeed
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: HighSpeed
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
       propertyPath: m_Enabled
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: PackagePerSecond
+      value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: InterTrialInterval
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: AccelerationDuration
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: DecelerationDuration
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: StableRotationDuration
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: RepetitionsPerCondition
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7416574462932647720, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041, type: 3}

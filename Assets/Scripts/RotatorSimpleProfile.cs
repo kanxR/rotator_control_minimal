@@ -20,7 +20,7 @@ public class RotatorSimpleProfile : MonoBehaviour
     [Range(1, 60)]
     public float PackagePerSecond = 30;
     private int remotePort = 42424;//42425? as in UDPListener.cs
-    private string remoteIP = "127.179.177.25";
+    private string remoteIP = "100.1.1.101";
     private int localPort = 42434;
     private UdpClient sender;
     private float sendRate;
@@ -222,6 +222,7 @@ public class RotatorSimpleProfile : MonoBehaviour
         while (elapsedTime < duration)
         {
             currentVelocity = Mathf.Lerp(startSpeed, endSpeed, elapsedTime / duration);
+            Debug.Log("current speed: " + currentVelocity);
             // Send UDP command only if UseChairConnection is true
             if (UseChairConnection && sender != null)
             {
