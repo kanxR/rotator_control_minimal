@@ -221,7 +221,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
 
             case ExperimentPhase.DecelerationToMid:
-                currentVelocity = Mathf.Lerp(startSpeed, 0, phaseTimer / DecelerationDuration);
+                currentVelocity = Mathf.Lerp(startSpeed, targetSpeed, phaseTimer / DecelerationDuration);
                 if (phaseTimer >= DecelerationDuration)
                 {
                     currentVelocity = targetSpeed;
