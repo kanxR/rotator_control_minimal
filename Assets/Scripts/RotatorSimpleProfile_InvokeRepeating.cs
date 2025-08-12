@@ -204,7 +204,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         switch (currentPhase)
         {
             case ExperimentPhase.Acceleration:
-                currentVelocity = Mathf.Lerp(startSpeed, targetSpeed, phaseTimer / AccelerationDuration);
+                currentVelocity = RaisedCosineSpeed(startSpeed, targetSpeed, phaseTimer, AccelerationDuration);
                 if (phaseTimer >= AccelerationDuration)
                 {
                     currentVelocity = targetSpeed;
@@ -221,7 +221,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
 
             case ExperimentPhase.DecelerationToMid:
-                currentVelocity = Mathf.Lerp(startSpeed, targetSpeed, phaseTimer / DecelerationDuration);
+                currentVelocity = RaisedCosineSpeed(startSpeed, targetSpeed, phaseTimer, DecelerationDuration);
                 if (phaseTimer >= DecelerationDuration)
                 {
                     currentVelocity = targetSpeed;
@@ -238,7 +238,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
 
             case ExperimentPhase.DecelerationToStop:
-                currentVelocity = Mathf.Lerp(startSpeed, 0, phaseTimer / DecelerationDuration);
+                currentVelocity = RaisedCosineSpeed(startSpeed, 0, phaseTimer, DecelerationDuration);
                 if (phaseTimer >= DecelerationDuration)
                 {
                     currentVelocity = 0; // Ensure chair is stopped
@@ -257,13 +257,22 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
         }
 
+        Debug.Log("current speed: " + currentVelocity);
         // Send velocity data via UDP
         if (UseChairConnection && sender != null)
         {
             string message = string.Format("udpvelocity {0}", currentVelocity);
             sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
-            Debug.Log("current speed: " + currentVelocity);
+            //Debug.Log("current speed: " + currentVelocity);
         }
+    }
+
+    // Raised cosine speed profile helper
+    private float RaisedCosineSpeed(float start, float end, float t, float duration)
+    {
+        t = Mathf.Clamp(t, 0, duration);
+        float cosValue = 0.5f * (1 - Mathf.Cos(Mathf.PI * t / duration));
+        return start + (end - start) * cosValue;
     }
 
     private void TransitionToPhase(ExperimentPhase nextPhase)
