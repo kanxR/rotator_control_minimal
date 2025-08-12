@@ -30,8 +30,8 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     [Header("Experiment Settings")]
     public int RepetitionsPerCondition = 5;
     public float AccelerationDuration = 2.0f;
-    public float StableRotationDuration = 10.0f;
-    public float MidSpeedRotationDuration = 10.0f;
+    public float SteadyRotationDuration = 10.0f;
+    //public float MidSpeedRotationDuration = 10.0f;
     public float DecelerationDuration = 2.0f;
     public float InterTrialInterval = 10.0f;
     public float HighSpeed = 120.0f;
@@ -214,7 +214,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
             case ExperimentPhase.StableRotation:
                 currentVelocity = targetSpeed; // Keep speed constant
-                if (phaseTimer >= StableRotationDuration)
+                if (phaseTimer >= SteadyRotationDuration)
                 {
                     TransitionToPhase(ExperimentPhase.DecelerationToMid);
                 }
@@ -231,7 +231,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
             case ExperimentPhase.StableRotationMid:
                 currentVelocity = targetSpeed; // Keep speed constant
-                if (phaseTimer >= MidSpeedRotationDuration)
+                if (phaseTimer >= SteadyRotationDuration)
                 {
                     TransitionToPhase(ExperimentPhase.DecelerationToStop);
                 }
