@@ -158,9 +158,9 @@ MonoBehaviour:
   PackagePerSecond: 30
   RepetitionsPerCondition: 5
   AccelerationDuration: 2
-  StableRotationDuration: 10
-  MidSpeedRotationDuration: 10
+  SteadyRotationDuration: 10
   DecelerationDuration: 2
   InterTrialInterval: 10
   HighSpeed: 90
   LowSpeed: 60
+  rotationMode: 1

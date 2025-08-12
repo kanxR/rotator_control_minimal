@@ -37,17 +37,6 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     public float HighSpeed = 120.0f;
     public float LowSpeed = 90.0f;
 
-    public enum RotationMode
-{
-    Mode1, // Current mode
-    Mode2,
-    Mode3,
-    Mode4
-}
-
-[Header("Rotation Mode")]
-public RotationMode rotationMode = RotationMode.Mode1;
-
     // Enum for trial conditions
     private enum TrialCondition
     {
@@ -63,7 +52,7 @@ public RotationMode rotationMode = RotationMode.Mode1;
         Idle,
         Acceleration,
         StableRotation,
-        DecelerationToMid, 
+        DecelerationToMid,
         StableRotationMid,
         DecelerationToStop,
         InterTrialInterval
@@ -80,12 +69,6 @@ public RotationMode rotationMode = RotationMode.Mode1;
     private float targetSpeed = 0f;
     private float startSpeed = 0f;
 
-    private List<float> speedSequence;
-    private int sequenceIndex;
-    private bool isRepeatingMode;
-
-    // Add this field to your class:
-    private float trialDirection = 1f;
 
     private void Start()
     {
@@ -177,49 +160,46 @@ public RotationMode rotationMode = RotationMode.Mode1;
         TrialCondition condition = trialList[currentTrialIndex];
         Debug.Log($"--- Starting Trial {currentTrialIndex + 1}/{trialList.Count}: {condition} ---");
 
-        // Randomize direction for this trial: +1 (clockwise) or -1 (counterclockwise)
-        trialDirection = (Random.value < 0.5f) ? 1f : -1f;
-
         float topSpeed = 0;
+        float direction = 1.0f;
+
         switch (condition)
         {
             case TrialCondition.ClockwiseHigh:
-            case TrialCondition.CounterClockwiseHigh:
                 topSpeed = HighSpeed;
+                direction = 1.0f;
                 break;
             case TrialCondition.ClockwiseLow:
+                topSpeed = LowSpeed;
+                direction = 1.0f;
+                break;
+            case TrialCondition.CounterClockwiseHigh:
+                topSpeed = HighSpeed;
+                direction = -1.0f;
+                break;
             case TrialCondition.CounterClockwiseLow:
                 topSpeed = LowSpeed;
+                direction = -1.0f;
                 break;
         }
 
-        // Get the base speed sequence for the selected mode
-        var baseSequence = GetSpeedSequence(topSpeed);
+        targetSpeed = topSpeed * direction;
 
-        // Apply the randomized direction to all speeds in the sequence
-        speedSequence = baseSequence.Select(s => s * trialDirection).ToList();
-
-        sequenceIndex = 0;
-        isRepeatingMode = (rotationMode == RotationMode.Mode4);
-
-        currentVelocity = speedSequence[0];
-        targetSpeed = speedSequence[0];
-        startSpeed = currentVelocity;
-
+        // Send "start" command to the chair at the beginning of the first phase
         if (UseChairConnection && sender != null)
         {
             sender.Send(Encoding.ASCII.GetBytes("start"), "start".Length);
         }
 
-        phaseTimer = 0f;
-        currentPhase = ExperimentPhase.Acceleration;
+        // Transition to the first phase: Acceleration
+        TransitionToPhase(ExperimentPhase.Acceleration);
     }
 
     private void UpdateTrialState()
     {
         if (!isExperimentRunning) return;
 
-        phaseTimer += sendRate;
+        phaseTimer += sendRate; // Increment timer by the update interval
 
         switch (currentPhase)
         {
@@ -228,41 +208,15 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 if (phaseTimer >= AccelerationDuration)
                 {
                     currentVelocity = targetSpeed;
-                    phaseTimer = 0f;
-                    currentPhase = ExperimentPhase.StableRotation;
+                    TransitionToPhase(ExperimentPhase.StableRotation);
                 }
                 break;
 
             case ExperimentPhase.StableRotation:
-                currentVelocity = targetSpeed;
+                currentVelocity = targetSpeed; // Keep speed constant
                 if (phaseTimer >= SteadyRotationDuration)
                 {
-                    // Prepare for next speed in sequence
-                    if (sequenceIndex < speedSequence.Count - 1)
-                    {
-                        sequenceIndex++;
-                        startSpeed = currentVelocity;
-                        targetSpeed = speedSequence[sequenceIndex];
-                        phaseTimer = 0f;
-                        currentPhase = ExperimentPhase.DecelerationToMid;
-                    }
-                    else if (isRepeatingMode)
-                    {
-                        // Loop for Mode4
-                        sequenceIndex = 0;
-                        startSpeed = currentVelocity;
-                        targetSpeed = speedSequence[sequenceIndex];
-                        phaseTimer = 0f;
-                        currentPhase = ExperimentPhase.DecelerationToMid;
-                    }
-                    else
-                    {
-                        // End of sequence, decelerate to stop
-                        startSpeed = currentVelocity;
-                        targetSpeed = 0f;
-                        phaseTimer = 0f;
-                        currentPhase = ExperimentPhase.DecelerationToStop;
-                    }
+                    TransitionToPhase(ExperimentPhase.DecelerationToMid);
                 }
                 break;
 
@@ -271,8 +225,15 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 if (phaseTimer >= DecelerationDuration)
                 {
                     currentVelocity = targetSpeed;
-                    phaseTimer = 0f;
-                    currentPhase = ExperimentPhase.StableRotation;
+                    TransitionToPhase(ExperimentPhase.StableRotationMid);
+                }
+                break;
+
+            case ExperimentPhase.StableRotationMid:
+                currentVelocity = targetSpeed; // Keep speed constant
+                if (phaseTimer >= SteadyRotationDuration)
+                {
+                    TransitionToPhase(ExperimentPhase.DecelerationToStop);
                 }
                 break;
 
@@ -280,15 +241,14 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 currentVelocity = RaisedCosineSpeed(startSpeed, 0, phaseTimer, DecelerationDuration);
                 if (phaseTimer >= DecelerationDuration)
                 {
-                    currentVelocity = 0;
+                    currentVelocity = 0; // Ensure chair is stopped
                     SendMarker(6);
-                    phaseTimer = 0f;
-                    currentPhase = ExperimentPhase.InterTrialInterval;
+                    TransitionToPhase(ExperimentPhase.InterTrialInterval);
                 }
                 break;
 
             case ExperimentPhase.InterTrialInterval:
-                currentVelocity = 0;
+                currentVelocity = 0; // Ensure chair is stopped
                 if (phaseTimer >= InterTrialInterval)
                 {
                     currentTrialIndex++;
@@ -297,14 +257,15 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 break;
         }
 
-    Debug.Log("current speed: " + currentVelocity);
-
-    if (UseChairConnection && sender != null)
-    {
-        string message = string.Format("udpvelocity {0}", currentVelocity);
-        sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
+        Debug.Log("current speed: " + currentVelocity);
+        // Send velocity data via UDP
+        if (UseChairConnection && sender != null)
+        {
+            string message = string.Format("udpvelocity {0}", currentVelocity);
+            sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
+            //Debug.Log("current speed: " + currentVelocity);
+        }
     }
-}
 
     // Raised cosine speed profile helper
     private float RaisedCosineSpeed(float start, float end, float t, float duration)
@@ -336,7 +297,7 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 marker = 3;
                 targetSpeed = startSpeed * 0.5f; //Target is half of the top speed (current "startSpeed")
                 break;
-            case ExperimentPhase.StableRotationMid: 
+            case ExperimentPhase.StableRotationMid:
                 marker = 4;
                 break;
             case ExperimentPhase.DecelerationToStop:
@@ -417,28 +378,6 @@ public RotationMode rotationMode = RotationMode.Mode1;
                 EmergencyStop();
             }
             sender.Close();
-        }
-    }
-
-    // Update GetSpeedSequence to accept topSpeed as a parameter:
-    private List<float> GetSpeedSequence(float topSpeed)
-    {
-        switch (rotationMode)
-        {
-            case RotationMode.Mode1:
-                // Top speed -> half speed -> stop
-                return new List<float> { topSpeed, topSpeed * 0.5f, 0f };
-            case RotationMode.Mode2:
-                // 90 -> 60 -> 30 -> 0
-                return new List<float> { 90f, 60f, 30f, 0f };
-            case RotationMode.Mode3:
-                // 100 -> 75 -> 50 -> 25 -> 0
-                return new List<float> { 100f, 75f, 50f, 25f, 0f };
-            case RotationMode.Mode4:
-                // 90 -> 60 -> 30 -> 90 (repeat, never stop)
-                return new List<float> { 90f, 60f, 30f };
-            default:
-                return new List<float> { topSpeed, topSpeed * 0.5f, 0f };
         }
     }
 }
