@@ -1,11 +1,8 @@
 using LSL;
-using System.Collections;
 using System.Collections.Generic;
-//using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-//using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -29,32 +26,47 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
     [Header("Experiment Settings")]
     public int RepetitionsPerCondition = 5;
-    public float AccelerationDuration = 2.0f;
-    public float SteadyRotationDuration = 10.0f;
-    //public float MidSpeedRotationDuration = 10.0f;
-    public float DecelerationDuration = 2.0f;
     public float InterTrialInterval = 10.0f;
-    public float HighSpeed = 120.0f;
-    public float LowSpeed = 90.0f;
+
+    [Header("Steady Speeds (deg/s)")]
+    public float SteadySpeed1 = 120.0f;
+    public float SteadySpeed2 = 90.0f;
+    public float SteadySpeed3 = 60.0f;
+    public float SteadySpeed4 = 30.0f;
+
+    [Header("Steady Durations (s)")]
+    public float SteadyDuration1 = 10.0f;
+    public float SteadyDuration2 = 10.0f;
+    public float SteadyDuration3 = 10.0f;
+    public float SteadyDuration4 = 10.0f;
+
+    [Header("Acceleration/Deceleration Durations (s)")]
+    public float AccelDecelDuration0 = 2.0f; // Before Steady 1
+    public float AccelDecelDuration1 = 2.0f; // Before Steady 2
+    public float AccelDecelDuration2 = 2.0f; // Before Steady 3
+    public float AccelDecelDuration3 = 2.0f; // Before Steady 4
+    public float AccelDecelDuration4 = 2.0f; // To stop
 
     // Enum for trial conditions
     private enum TrialCondition
     {
-        ClockwiseHigh,
-        ClockwiseLow,
-        CounterClockwiseHigh,
-        CounterClockwiseLow
+        Clockwise,
+        CounterClockwise
     }
 
     // Enum for the state machine logic
     private enum ExperimentPhase
     {
         Idle,
-        Acceleration,
-        StableRotation,
-        DecelerationToMid,
-        StableRotationMid,
-        DecelerationToStop,
+        AccelDecel0,
+        Steady1,
+        AccelDecel1,
+        Steady2,
+        AccelDecel2,
+        Steady3,
+        AccelDecel3,
+        Steady4,
+        AccelDecel4,
         InterTrialInterval
     }
 
@@ -69,6 +81,10 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     private float targetSpeed = 0f;
     private float startSpeed = 0f;
 
+    // Arrays for speeds and durations
+    private float[] steadySpeeds;
+    private float[] steadyDurations;
+    private float[] accelDecelDurations;
 
     private void Start()
     {
@@ -76,6 +92,11 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         InitLSL();
         CreateRandomizedTrialList();
         sendRate = 1.0f / PackagePerSecond;
+
+        // Initialize arrays for easy access
+        steadySpeeds = new float[] { SteadySpeed1, SteadySpeed2, SteadySpeed3, SteadySpeed4 };
+        steadyDurations = new float[] { SteadyDuration1, SteadyDuration2, SteadyDuration3, SteadyDuration4 };
+        accelDecelDurations = new float[] { AccelDecelDuration0, AccelDecelDuration1, AccelDecelDuration2, AccelDecelDuration3, AccelDecelDuration4 };
     }
 
     private void Update()
@@ -114,7 +135,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
             ChairRotationStreamName,
             ChairRotationStreamType,
             1, 0.0,
-            LSL.channel_format_t.cf_int32,// Use cf_string for string markers
+            LSL.channel_format_t.cf_int32,
             "UnityChairRotation_Automated"
         );
         chairRotationOutlet = new StreamOutlet(chairRotationInfo);
@@ -160,30 +181,14 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         TrialCondition condition = trialList[currentTrialIndex];
         Debug.Log($"--- Starting Trial {currentTrialIndex + 1}/{trialList.Count}: {condition} ---");
 
-        float topSpeed = 0;
-        float direction = 1.0f;
+        // Set direction
+        float direction = (condition == TrialCondition.Clockwise) ? 1.0f : -1.0f;
 
-        switch (condition)
+        // Apply direction to all steady speeds
+        for (int i = 0; i < steadySpeeds.Length; i++)
         {
-            case TrialCondition.ClockwiseHigh:
-                topSpeed = HighSpeed;
-                direction = 1.0f;
-                break;
-            case TrialCondition.ClockwiseLow:
-                topSpeed = LowSpeed;
-                direction = 1.0f;
-                break;
-            case TrialCondition.CounterClockwiseHigh:
-                topSpeed = HighSpeed;
-                direction = -1.0f;
-                break;
-            case TrialCondition.CounterClockwiseLow:
-                topSpeed = LowSpeed;
-                direction = -1.0f;
-                break;
+            steadySpeeds[i] = Mathf.Abs(steadySpeeds[i]) * direction;
         }
-
-        targetSpeed = topSpeed * direction;
 
         // Send "start" command to the chair at the beginning of the first phase
         if (UseChairConnection && sender != null)
@@ -191,8 +196,8 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
             sender.Send(Encoding.ASCII.GetBytes("start"), "start".Length);
         }
 
-        // Transition to the first phase: Acceleration
-        TransitionToPhase(ExperimentPhase.Acceleration);
+        // Transition to the first phase: AccelDecel0
+        TransitionToPhase(ExperimentPhase.AccelDecel0);
     }
 
     private void UpdateTrialState()
@@ -203,43 +208,77 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
         switch (currentPhase)
         {
-            case ExperimentPhase.Acceleration:
-                currentVelocity = RaisedCosineSpeed(startSpeed, targetSpeed, phaseTimer, AccelerationDuration);
-                if (phaseTimer >= AccelerationDuration)
+            case ExperimentPhase.AccelDecel0:
+                currentVelocity = RaisedCosineSpeed(startSpeed, steadySpeeds[0], phaseTimer, accelDecelDurations[0]);
+                if (phaseTimer >= accelDecelDurations[0])
                 {
-                    currentVelocity = targetSpeed;
-                    TransitionToPhase(ExperimentPhase.StableRotation);
+                    currentVelocity = steadySpeeds[0];
+                    TransitionToPhase(ExperimentPhase.Steady1);
                 }
                 break;
 
-            case ExperimentPhase.StableRotation:
-                currentVelocity = targetSpeed; // Keep speed constant
-                if (phaseTimer >= SteadyRotationDuration)
+            case ExperimentPhase.Steady1:
+                currentVelocity = steadySpeeds[0];
+                if (phaseTimer >= steadyDurations[0])
                 {
-                    TransitionToPhase(ExperimentPhase.DecelerationToMid);
+                    TransitionToPhase(ExperimentPhase.AccelDecel1);
                 }
                 break;
 
-            case ExperimentPhase.DecelerationToMid:
-                currentVelocity = RaisedCosineSpeed(startSpeed, targetSpeed, phaseTimer, DecelerationDuration);
-                if (phaseTimer >= DecelerationDuration)
+            case ExperimentPhase.AccelDecel1:
+                currentVelocity = RaisedCosineSpeed(startSpeed, steadySpeeds[1], phaseTimer, accelDecelDurations[1]);
+                if (phaseTimer >= accelDecelDurations[1])
                 {
-                    currentVelocity = targetSpeed;
-                    TransitionToPhase(ExperimentPhase.StableRotationMid);
+                    currentVelocity = steadySpeeds[1];
+                    TransitionToPhase(ExperimentPhase.Steady2);
                 }
                 break;
 
-            case ExperimentPhase.StableRotationMid:
-                currentVelocity = targetSpeed; // Keep speed constant
-                if (phaseTimer >= SteadyRotationDuration)
+            case ExperimentPhase.Steady2:
+                currentVelocity = steadySpeeds[1];
+                if (phaseTimer >= steadyDurations[1])
                 {
-                    TransitionToPhase(ExperimentPhase.DecelerationToStop);
+                    TransitionToPhase(ExperimentPhase.AccelDecel2);
                 }
                 break;
 
-            case ExperimentPhase.DecelerationToStop:
-                currentVelocity = RaisedCosineSpeed(startSpeed, 0, phaseTimer, DecelerationDuration);
-                if (phaseTimer >= DecelerationDuration)
+            case ExperimentPhase.AccelDecel2:
+                currentVelocity = RaisedCosineSpeed(startSpeed, steadySpeeds[2], phaseTimer, accelDecelDurations[2]);
+                if (phaseTimer >= accelDecelDurations[2])
+                {
+                    currentVelocity = steadySpeeds[2];
+                    TransitionToPhase(ExperimentPhase.Steady3);
+                }
+                break;
+
+            case ExperimentPhase.Steady3:
+                currentVelocity = steadySpeeds[2];
+                if (phaseTimer >= steadyDurations[2])
+                {
+                    TransitionToPhase(ExperimentPhase.AccelDecel3);
+                }
+                break;
+
+            case ExperimentPhase.AccelDecel3:
+                currentVelocity = RaisedCosineSpeed(startSpeed, steadySpeeds[3], phaseTimer, accelDecelDurations[3]);
+                if (phaseTimer >= accelDecelDurations[3])
+                {
+                    currentVelocity = steadySpeeds[3];
+                    TransitionToPhase(ExperimentPhase.Steady4);
+                }
+                break;
+
+            case ExperimentPhase.Steady4:
+                currentVelocity = steadySpeeds[3];
+                if (phaseTimer >= steadyDurations[3])
+                {
+                    TransitionToPhase(ExperimentPhase.AccelDecel4);
+                }
+                break;
+
+            case ExperimentPhase.AccelDecel4:
+                currentVelocity = RaisedCosineSpeed(startSpeed, 0, phaseTimer, accelDecelDurations[4]);
+                if (phaseTimer >= accelDecelDurations[4])
                 {
                     currentVelocity = 0; // Ensure chair is stopped
                     SendMarker(6);
@@ -248,7 +287,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
 
             case ExperimentPhase.InterTrialInterval:
-                currentVelocity = 0; // Ensure chair is stopped
+                currentVelocity = 0;
                 if (phaseTimer >= InterTrialInterval)
                 {
                     currentTrialIndex++;
@@ -263,7 +302,6 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         {
             string message = string.Format("udpvelocity {0}", currentVelocity);
             sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
-            //Debug.Log("current speed: " + currentVelocity);
         }
     }
 
@@ -281,32 +319,21 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         phaseTimer = 0f;
         startSpeed = currentVelocity; // The start speed for the next phase is the current speed
 
-        TrialCondition condition = trialList[currentTrialIndex];
-        int marker = 0;//0 means no marker sent
+        int marker = 0; // 0 means no marker sent
 
         switch (nextPhase)
         {
-            case ExperimentPhase.Acceleration:
-                marker = 1;
-                targetSpeed = (condition.ToString().Contains("High") ? HighSpeed : LowSpeed) * (condition.ToString().Contains("Counter") ? -1 : 1);
-                break;
-            case ExperimentPhase.StableRotation:
-                marker = 2;
-                break;
-            case ExperimentPhase.DecelerationToMid:
-                marker = 3;
-                targetSpeed = startSpeed * 0.5f; //Target is half of the top speed (current "startSpeed")
-                break;
-            case ExperimentPhase.StableRotationMid:
-                marker = 4;
-                break;
-            case ExperimentPhase.DecelerationToStop:
-                marker = 5;
-                targetSpeed = 0; // Target is a full stop
-                break;
+            case ExperimentPhase.AccelDecel0: marker = 1; break;
+            case ExperimentPhase.Steady1: marker = 2; break;
+            case ExperimentPhase.AccelDecel1: marker = 3; break;
+            case ExperimentPhase.Steady2: marker = 4; break;
+            case ExperimentPhase.AccelDecel2: marker = 5; break;
+            case ExperimentPhase.Steady3: marker = 6; break;
+            case ExperimentPhase.AccelDecel3: marker = 7; break;
+            case ExperimentPhase.Steady4: marker = 8; break;
+            case ExperimentPhase.AccelDecel4: marker = 9; break;
             case ExperimentPhase.InterTrialInterval:
                 Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");
-                // No marker needed here, stop marker was sent at end of deceleration
                 break;
         }
 
@@ -344,20 +371,6 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
             sender.Send(Encoding.ASCII.GetBytes("stop"), "stop".Length);
         }
     }
-
-    //private int GetMarkerCode(string marker)
-    //{
-    //    switch (marker)
-    //    {
-    //        case string s when s.Contains("start_acceleration"): return 1;
-    //        case string s when s.Contains("start_stable"): return 2;
-    //        case string s when s.Contains("start_deceleration_mid"): return 3;
-    //        case string s when s.Contains("start_stable_mid"): return 4;
-    //        case string s when s.Contains("start_deceleration_to_stop"): return 5;
-    //        case string s when s.Contains("stop"): return 6;
-    //        default: return 0;
-    //    }
-    //}
 
     private void SendMarker(int markerValue)
     {
