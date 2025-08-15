@@ -47,6 +47,10 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     public float AccelDecelDuration3 = 2.0f; // Before Steady 4
     public float AccelDecelDuration4 = 2.0f; // To stop
 
+    [Header("Audio Settings")]
+    public AudioClip beepClip;
+    private AudioSource audioSource;
+
     // Enum for trial conditions
     private enum TrialCondition
     {
@@ -97,6 +101,14 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         steadySpeeds = new float[] { SteadySpeed1, SteadySpeed2, SteadySpeed3, SteadySpeed4 };
         steadyDurations = new float[] { SteadyDuration1, SteadyDuration2, SteadyDuration3, SteadyDuration4 };
         accelDecelDurations = new float[] { AccelDecelDuration0, AccelDecelDuration1, AccelDecelDuration2, AccelDecelDuration3, AccelDecelDuration4 };
+
+        // Setup AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
     }
 
     private void Update()
@@ -313,6 +325,15 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         return start + (end - start) * cosValue;
     }
 
+    private void PlayBeep()
+    {
+        if (beepClip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(beepClip);
+            Debug.Log("Beep sound played.");
+        }
+    }
+
     private void TransitionToPhase(ExperimentPhase nextPhase)
     {
         currentPhase = nextPhase;
@@ -326,13 +347,25 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         switch (nextPhase)
         {
             case ExperimentPhase.AccelDecel0: marker = 1; break;
-            case ExperimentPhase.Steady1: marker = 2; break;
+            case ExperimentPhase.Steady1:
+                marker = 2;
+                PlayBeep();
+                break;
             case ExperimentPhase.AccelDecel1: marker = 3; break;
-            case ExperimentPhase.Steady2: marker = 4; break;
+            case ExperimentPhase.Steady2:
+                marker = 4;
+                PlayBeep();
+                break;
             case ExperimentPhase.AccelDecel2: marker = 5; break;
-            case ExperimentPhase.Steady3: marker = 6; break;
+            case ExperimentPhase.Steady3:
+                marker = 6;
+                PlayBeep();
+                break;
             case ExperimentPhase.AccelDecel3: marker = 7; break;
-            case ExperimentPhase.Steady4: marker = 8; break;
+            case ExperimentPhase.Steady4:
+                marker = 8;
+                PlayBeep();
+                break;
             case ExperimentPhase.AccelDecel4: marker = 9; break;
             case ExperimentPhase.InterTrialInterval:
                 Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");

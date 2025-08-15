@@ -89,6 +89,8 @@ GameObject:
   - component: {fileID: 3299395807914353258}
   - component: {fileID: 2510612505076601180}
   - component: {fileID: 8105643234446302385}
+  - component: {fileID: 7040299768642153489}
+  - component: {fileID: 770481257890217457}
   m_Layer: 0
   m_Name: Controller
   m_TagString: MainCamera
@@ -149,7 +151,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
@@ -157,10 +159,43 @@ MonoBehaviour:
   UseChairConnection: 0
   PackagePerSecond: 30
   RepetitionsPerCondition: 5
-  AccelerationDuration: 2
-  SteadyRotationDuration: 10
-  DecelerationDuration: 2
   InterTrialInterval: 10
-  HighSpeed: 90
-  LowSpeed: 60
-  rotationMode: 1
+  SteadySpeed1: 120
+  SteadySpeed2: 90
+  SteadySpeed3: 60
+  SteadySpeed4: 30
+  SteadyDuration1: 10
+  SteadyDuration2: 10
+  SteadyDuration3: 10
+  SteadyDuration4: 10
+  AccelDecelDuration0: 2
+  AccelDecelDuration1: 2
+  AccelDecelDuration2: 2
+  AccelDecelDuration3: 2
+  AccelDecelDuration4: 2
+  beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}
+--- !u!81 &7040299768642153489
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3848029913511958388}
+  m_Enabled: 1
+--- !u!114 &770481257890217457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3848029913511958388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6636f6dc34016740a032b5712025d91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  UseChairConnection: 0
+  PackagePerSecond: 30
+  AccelDuration: 2
+  DecelDuration: 2
+  beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}
