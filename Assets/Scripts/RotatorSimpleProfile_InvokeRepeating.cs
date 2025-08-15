@@ -296,7 +296,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
         }
 
-        Debug.Log("current speed: " + currentVelocity);
+        //Debug.Log("current speed: " + currentVelocity);
         // Send velocity data via UDP
         if (UseChairConnection && sender != null)
         {
@@ -320,6 +320,8 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         startSpeed = currentVelocity; // The start speed for the next phase is the current speed
 
         int marker = 0; // 0 means no marker sent
+
+        Debug.Log($"--- Transitioning to phase: {nextPhase} ---"); // <--- Add this line
 
         switch (nextPhase)
         {
@@ -374,11 +376,15 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
     private void SendMarker(int markerValue)
     {
-        if (chairRotationOutlet != null)
+        if (chairRotationOutlet != null)//when outlet is toggled on
         {
             int[] sample = { markerValue };
             chairRotationOutlet.push_sample(sample);
             Debug.Log("Sent LSL Marker: " + sample[0]);
+        }
+        else
+        {
+            Debug.LogWarning("Sent pseudo LSL Marker:" + markerValue);
         }
     }
 
