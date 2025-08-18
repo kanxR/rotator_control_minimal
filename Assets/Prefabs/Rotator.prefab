@@ -159,7 +159,7 @@ MonoBehaviour:
   UseChairConnection: 0
   PackagePerSecond: 30
   RepetitionsPerCondition: 5
-  InterTrialInterval: 30
+  InterTrialInterval: 20
   SteadySpeed1: 120
   SteadySpeed2: 90
   SteadySpeed3: 60
@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   UseChairConnection: 0
-  PackagePerSecond: 30
+  PackagePerSecond: 4.9
   AccelDecelDuration: 2
   Steady90Duration: 60
   introGuideClip: {fileID: 8300000, guid: f2edbda637edfb142bfa4fd9cf484481, type: 3}
