@@ -285,6 +285,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 770481257890217457, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3546787460228829891, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
       propertyPath: m_Name
@@ -327,13 +332,63 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
-      propertyPath: PackagePerSecond
+      propertyPath: SteadySpeed1
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadySpeed2
       value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadySpeed3
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadySpeed4
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadyDuration1
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadyDuration2
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadyDuration3
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: SteadyDuration4
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: PackagePerSecond
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
       propertyPath: InterTrialInterval
       value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: AccelDecelDuration0
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: AccelDecelDuration4
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}

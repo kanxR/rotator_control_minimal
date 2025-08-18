@@ -348,7 +348,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         {
             string message = string.Format("udpvelocity {0}", currentVelocity);
             sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
-            Debug.Log("current velocity;" + currentVelocity);
+            //Debug.Log("current velocity;" + currentVelocity);
         }
     }
 
@@ -383,7 +383,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
             case ExperimentPhase.AccelDecel0: marker = 1; break;
             case ExperimentPhase.Steady1:
                 marker = 2;
-                Invoke(nameof(PlayBeep), 1.0f);
+                Invoke(nameof(PlayBeep), 1.0f); 
                 break;
             case ExperimentPhase.AccelDecel1: marker = 3; break;
             case ExperimentPhase.Steady2:

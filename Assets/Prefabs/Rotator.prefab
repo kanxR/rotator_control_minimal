@@ -151,7 +151,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
@@ -169,7 +169,7 @@ MonoBehaviour:
   SteadyDuration2: 30
   SteadyDuration3: 30
   SteadyDuration4: 30
-  AccelDecelDuration0: 4
+  AccelDecelDuration0: 10
   AccelDecelDuration1: 2
   AccelDecelDuration2: 2
   AccelDecelDuration3: 2
@@ -191,12 +191,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6636f6dc34016740a032b5712025d91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseChairConnection: 0
+  UseChairConnection: 1
   IsDebugMode: 1
   PackagePerSecond: 30
   AccelDecelDuration: 2
