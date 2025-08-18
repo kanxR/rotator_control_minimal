@@ -1,4 +1,5 @@
 using LSL;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -7,7 +8,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
+public class RotatorSimpleProfile_WithAudio : MonoBehaviour
 {
     // LSL Marker Stream
     private StreamOutlet chairRotationOutlet;
@@ -48,6 +49,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     public float AccelDecelDuration4 = 2.0f; // To stop
 
     [Header("Audio Settings")]
+    public AudioClip introGuideClip; // Audio guide to play at the start
     public AudioClip beepClip;
     private AudioSource audioSource;
 
@@ -82,7 +84,6 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     private int currentTrialIndex = 0;
     private float phaseTimer = 0f;
     private float currentVelocity = 0f;
-    private float targetSpeed = 0f;
     private float startSpeed = 0f;
 
     // Arrays for speeds and durations
@@ -115,8 +116,8 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     {
         if (Keyboard.current.spaceKey.wasPressedThisFrame && !isExperimentRunning)
         {
-            Debug.Log("Space pressed - Starting Experiment");
-            StartExperiment();
+            // The coroutine will now handle the experiment start sequence
+            StartCoroutine(StartExperimentCoroutine());
         }
 
         if (Keyboard.current.sKey.wasPressedThisFrame && isExperimentRunning)
@@ -130,10 +131,18 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     {
         if (UseChairConnection)
         {
-            sender = new UdpClient(localPort, AddressFamily.InterNetwork);
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(remoteIP), remotePort);
-            sender.Connect(endPoint);
-            Debug.Log("UDP Sender Initialized for Chair Connection.");
+            try
+            {
+                sender = new UdpClient(localPort, AddressFamily.InterNetwork);
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(remoteIP), remotePort);
+                sender.Connect(endPoint);
+                Debug.Log("UDP Sender Initialized for Chair Connection.");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"UDP Sender Initialization Failed: {e.Message}");
+                UseChairConnection = false;
+            }
         }
         else
         {
@@ -169,14 +178,30 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         Debug.Log($"Created a randomized trial list with {trialList.Count} trials.");
     }
 
-    private void StartExperiment()
+    private IEnumerator StartExperimentCoroutine()
     {
+        isExperimentRunning = true; // Lock the spacebar immediately
+        Debug.Log("--- Playing Introduction Audio ---");
+
+        if (introGuideClip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(introGuideClip);
+            yield return new WaitForSeconds(introGuideClip.length);
+        }
+        else
+        {
+            Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
+        }
+
+        // --- Now, proceed with the original experiment setup ---
         if (trialList == null || trialList.Count == 0)
         {
             Debug.LogError("Trial list is empty. Cannot start experiment.");
-            return;
+            isExperimentRunning = false; // Release the lock if setup fails
+            yield break; // Exit the coroutine
         }
-        isExperimentRunning = true;
+
+        Debug.Log("--- Experiment Starting Now ---");
         currentTrialIndex = 0;
         StartNewTrial();
         InvokeRepeating(nameof(UpdateTrialState), 0f, sendRate);
@@ -196,11 +221,15 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         // Set direction
         float direction = (condition == TrialCondition.Clockwise) ? 1.0f : -1.0f;
 
-        // Apply direction to all steady speeds
-        for (int i = 0; i < steadySpeeds.Length; i++)
-        {
-            steadySpeeds[i] = Mathf.Abs(steadySpeeds[i]) * direction;
-        }
+        // Re-initialize a fresh copy of speeds with the correct direction for the new trial
+        float[] directedSteadySpeeds = new float[] {
+            Mathf.Abs(SteadySpeed1) * direction,
+            Mathf.Abs(SteadySpeed2) * direction,
+            Mathf.Abs(SteadySpeed3) * direction,
+            Mathf.Abs(SteadySpeed4) * direction
+        };
+        steadySpeeds = directedSteadySpeeds;
+
 
         // Send "start" command to the chair at the beginning of the first phase
         if (UseChairConnection && sender != null)
@@ -308,8 +337,6 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
                 break;
         }
 
-        //Debug.Log("current speed: " + currentVelocity);
-        // Send velocity data via UDP
         if (UseChairConnection && sender != null)
         {
             string message = string.Format("udpvelocity {0}", currentVelocity);
@@ -317,9 +344,9 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
         }
     }
 
-    // Raised cosine speed profile helper
     private float RaisedCosineSpeed(float start, float end, float t, float duration)
     {
+        if (duration <= 0) return end;
         t = Mathf.Clamp(t, 0, duration);
         float cosValue = 0.5f * (1 - Mathf.Cos(Mathf.PI * t / duration));
         return start + (end - start) * cosValue;
@@ -338,33 +365,32 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
     {
         currentPhase = nextPhase;
         phaseTimer = 0f;
-        startSpeed = currentVelocity; // The start speed for the next phase is the current speed
+        startSpeed = currentVelocity;
+        int marker = 0;
 
-        int marker = 0; // 0 means no marker sent
-
-        Debug.Log($"--- Transitioning to phase: {nextPhase} ---"); // <--- Add this line
+        Debug.Log($"--- Transitioning to phase: {nextPhase} ---");
 
         switch (nextPhase)
         {
             case ExperimentPhase.AccelDecel0: marker = 1; break;
             case ExperimentPhase.Steady1:
                 marker = 2;
-                PlayBeep();
+                Invoke(nameof(PlayBeep), 1.0f);
                 break;
             case ExperimentPhase.AccelDecel1: marker = 3; break;
             case ExperimentPhase.Steady2:
                 marker = 4;
-                PlayBeep();
+                Invoke(nameof(PlayBeep), 1.0f);
                 break;
             case ExperimentPhase.AccelDecel2: marker = 5; break;
             case ExperimentPhase.Steady3:
                 marker = 6;
-                PlayBeep();
+                Invoke(nameof(PlayBeep), 1.0f);
                 break;
             case ExperimentPhase.AccelDecel3: marker = 7; break;
             case ExperimentPhase.Steady4:
                 marker = 8;
-                PlayBeep();
+                Invoke(nameof(PlayBeep), 1.0f);
                 break;
             case ExperimentPhase.AccelDecel4: marker = 9; break;
             case ExperimentPhase.InterTrialInterval:
@@ -409,7 +435,7 @@ public class RotatorSimpleProfile_InvokeRepeating : MonoBehaviour
 
     private void SendMarker(int markerValue)
     {
-        if (chairRotationOutlet != null)//when outlet is toggled on
+        if (chairRotationOutlet != null)
         {
             int[] sample = { markerValue };
             chairRotationOutlet.push_sample(sample);

@@ -21,7 +21,7 @@ public class ChairCalibrationController : MonoBehaviour
 
     [Header("Experiment Settings")]
     public float AccelDecelDuration = 2.0f;
-    public float Steady90Duration = 10.0f;
+    public float Steady90Duration = 60.0f;
     private const int NumberOfTrials = 3;
 
     [Header("Audio Settings")]
@@ -87,7 +87,7 @@ public class ChairCalibrationController : MonoBehaviour
             Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
             yield return new WaitForSeconds(1.0f); // Brief pause
         }
-
+        
         StartExperiment();
     }
 
@@ -175,7 +175,7 @@ public class ChairCalibrationController : MonoBehaviour
             isResponseTimerRunning = false;
             dataList.Add(responseTimer);
             Debug.Log($"Response recorded at {responseTimer:F2}s for phase {currentPhase}.");
-
+            
             // If it's not a fixed duration, start the 1-second countdown to the next phase
             if (!isFixedDuration)
             {
@@ -189,8 +189,8 @@ public class ChairCalibrationController : MonoBehaviour
             // If the user didn't respond, record a placeholder value (e.g., -1)
             if (!isResponseRegistered)
             {
-                dataList.Add(-1f);
-                Debug.LogWarning($"No response recorded for phase {currentPhase}.");
+                 dataList.Add(-1f);
+                 Debug.LogWarning($"No response recorded for phase {currentPhase}.");
             }
             TransitionToPhase(nextPhase);
         }
@@ -228,7 +228,7 @@ public class ChairCalibrationController : MonoBehaviour
             isResponseTimerRunning = true;
             StartCoroutine(PlayBeepAfterDelay(1.0f));
         }
-
+        
         // Send start command at the very beginning of a trial
         if (nextPhase == ExperimentPhase.AccelTo90)
         {
@@ -243,7 +243,7 @@ public class ChairCalibrationController : MonoBehaviour
     {
         currentPhase = ExperimentPhase.Finished;
         Debug.Log("--- Calibration Finished! ---");
-
+        
         // Calculate and log averages
         LogAverage("Habituation @ 90deg/s", habituation90_times);
         LogAverage("Habituation @ 60deg/s", habituation60_times);
@@ -293,7 +293,7 @@ public class ChairCalibrationController : MonoBehaviour
         byte[] data = Encoding.ASCII.GetBytes(message);
         sender.Send(data, data.Length);
     }
-
+    
     private void StopChair()
     {
         currentVelocity = 0;

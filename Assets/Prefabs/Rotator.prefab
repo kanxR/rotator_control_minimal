@@ -151,7 +151,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
@@ -159,20 +159,21 @@ MonoBehaviour:
   UseChairConnection: 0
   PackagePerSecond: 30
   RepetitionsPerCondition: 5
-  InterTrialInterval: 10
+  InterTrialInterval: 30
   SteadySpeed1: 120
   SteadySpeed2: 90
   SteadySpeed3: 60
   SteadySpeed4: 30
-  SteadyDuration1: 10
-  SteadyDuration2: 10
-  SteadyDuration3: 10
-  SteadyDuration4: 10
+  SteadyDuration1: 20
+  SteadyDuration2: 20
+  SteadyDuration3: 20
+  SteadyDuration4: 20
   AccelDecelDuration0: 2
   AccelDecelDuration1: 2
   AccelDecelDuration2: 2
   AccelDecelDuration3: 2
   AccelDecelDuration4: 2
+  introGuideClip: {fileID: 8300000, guid: fb24031781435234f825c67733b60fb9, type: 3}
   beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}
 --- !u!81 &7040299768642153489
 AudioListener:
@@ -189,7 +190,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3848029913511958388}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e6636f6dc34016740a032b5712025d91, type: 3}
   m_Name: 
@@ -197,6 +198,6 @@ MonoBehaviour:
   UseChairConnection: 0
   PackagePerSecond: 30
   AccelDecelDuration: 2
-  Steady90Duration: 10
+  Steady90Duration: 60
   introGuideClip: {fileID: 8300000, guid: f2edbda637edfb142bfa4fd9cf484481, type: 3}
   beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}
