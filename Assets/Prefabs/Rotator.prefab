@@ -196,6 +196,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   UseChairConnection: 0
   PackagePerSecond: 30
-  AccelDuration: 2
-  DecelDuration: 2
+  AccelDecelDuration: 2
+  Steady90Duration: 10
+  introGuideClip: {fileID: 8300000, guid: f2edbda637edfb142bfa4fd9cf484481, type: 3}
   beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}
