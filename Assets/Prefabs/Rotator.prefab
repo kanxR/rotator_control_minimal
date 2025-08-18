@@ -156,19 +156,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseChairConnection: 0
+  UseChairConnection: 1
   PackagePerSecond: 30
+  isDebugMode: 1
   RepetitionsPerCondition: 5
   InterTrialInterval: 20
-  SteadySpeed1: 120
+  SteadySpeed1: 60
   SteadySpeed2: 90
   SteadySpeed3: 60
   SteadySpeed4: 30
-  SteadyDuration1: 20
-  SteadyDuration2: 20
-  SteadyDuration3: 20
-  SteadyDuration4: 20
-  AccelDecelDuration0: 2
+  SteadyDuration1: 30
+  SteadyDuration2: 30
+  SteadyDuration3: 30
+  SteadyDuration4: 30
+  AccelDecelDuration0: 4
   AccelDecelDuration1: 2
   AccelDecelDuration2: 2
   AccelDecelDuration3: 2
@@ -196,7 +197,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   UseChairConnection: 0
-  PackagePerSecond: 4.9
+  IsDebugMode: 1
+  PackagePerSecond: 30
   AccelDecelDuration: 2
   Steady90Duration: 60
   introGuideClip: {fileID: 8300000, guid: f2edbda637edfb142bfa4fd9cf484481, type: 3}

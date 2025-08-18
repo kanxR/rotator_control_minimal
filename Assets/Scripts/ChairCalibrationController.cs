@@ -11,6 +11,8 @@ public class ChairCalibrationController : MonoBehaviour
 {
     [Header("Communication Settings")]
     public bool UseChairConnection = true;
+    public bool IsDebugMode = true;
+
     [Range(1, 60)]
     public float PackagePerSecond = 30;
     private int remotePort = 42424;
@@ -51,7 +53,7 @@ public class ChairCalibrationController : MonoBehaviour
     private float phaseTimer = 0f;
     private float responseTimer = 0f;
     private bool isResponseTimerRunning = false;
-    private bool isResponseRegistered = false;
+    private bool isResponseRegistered = true;
 
     // --- Data Storage for each metric across all trials ---
     private int currentTrial = 0;
@@ -76,16 +78,19 @@ public class ChairCalibrationController : MonoBehaviour
 
     private IEnumerator PlayIntroAndBegin()
     {
-        Debug.Log("--- Playing Introduction Audio ---");
-        if (introGuideClip != null)
+        if (!IsDebugMode)
         {
-            audioSource.PlayOneShot(introGuideClip);
-            yield return new WaitForSeconds(introGuideClip.length);
-        }
-        else
-        {
-            Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
-            yield return new WaitForSeconds(1.0f); // Brief pause
+            Debug.Log("--- Playing Introduction Audio ---");
+            if (introGuideClip != null)
+            {
+                audioSource.PlayOneShot(introGuideClip);
+                yield return new WaitForSeconds(introGuideClip.length);
+            }
+            else
+            {
+                Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
+                yield return new WaitForSeconds(1.0f); // Brief pause
+            }
         }
         
         StartExperiment();
@@ -108,7 +113,7 @@ public class ChairCalibrationController : MonoBehaviour
                 UpdateSpeedChange(startSpeed, 90f, AccelDecelDuration, ExperimentPhase.Steady90);
                 break;
             case ExperimentPhase.Steady90:
-                UpdateSteadyPhase(Steady90Duration, ExperimentPhase.DecelTo60, habituation90_times, true);
+                UpdateSteadyPhase(Mathf.Infinity, ExperimentPhase.DecelTo60, habituation90_times, false);
                 break;
             case ExperimentPhase.DecelTo60:
                 UpdateSpeedChange(startSpeed, 60f, AccelDecelDuration, ExperimentPhase.Steady60);
@@ -169,18 +174,17 @@ public class ChairCalibrationController : MonoBehaviour
         }
 
         // Listen for user input, but only if they haven't responded yet in this phase
-        if (!isResponseRegistered && Keyboard.current.digit6Key.wasPressedThisFrame)
+        if (!isResponseRegistered && Keyboard.current.numpad6Key.wasPressedThisFrame)
         {
             isResponseRegistered = true;
             isResponseTimerRunning = false;
             dataList.Add(responseTimer);
             Debug.Log($"Response recorded at {responseTimer:F2}s for phase {currentPhase}.");
             
-            // If it's not a fixed duration, start the 1-second countdown to the next phase
-            if (!isFixedDuration)
-            {
-                StartCoroutine(EndPhaseAfterDelay(1.0f, nextPhase));
-            }
+            //start the 1-second countdown to the next phase
+            
+            StartCoroutine(EndPhaseAfterDelay(1.0f, nextPhase));
+           
         }
 
         // For fixed duration phases, transition after the time is up
@@ -223,10 +227,10 @@ public class ChairCalibrationController : MonoBehaviour
         if (nextPhase == ExperimentPhase.Steady90 || nextPhase == ExperimentPhase.Steady60 ||
             nextPhase == ExperimentPhase.Steady30 || nextPhase == ExperimentPhase.PostRotation)
         {
-            isResponseRegistered = false;
+            //isResponseRegistered = false;
             responseTimer = 0f;
             isResponseTimerRunning = true;
-            StartCoroutine(PlayBeepAfterDelay(1.0f));
+            StartCoroutine(PlayBeepAfterDelay(7.0f));
         }
         
         // Send start command at the very beginning of a trial
@@ -320,6 +324,7 @@ public class ChairCalibrationController : MonoBehaviour
         {
             audioSource.PlayOneShot(beepClip);
             Debug.Log("BEEP! You can respond now.");
+            isResponseRegistered = false;
         }
     }
 

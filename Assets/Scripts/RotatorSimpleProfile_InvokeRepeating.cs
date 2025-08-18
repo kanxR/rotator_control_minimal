@@ -25,6 +25,8 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
     private UdpClient sender;
     private float sendRate;
 
+    public bool isDebugMode = true;
+
     [Header("Experiment Settings")]
     public int RepetitionsPerCondition = 5;
     public float InterTrialInterval = 10.0f;
@@ -180,17 +182,22 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
 
     private IEnumerator StartExperimentCoroutine()
     {
-        isExperimentRunning = true; // Lock the spacebar immediately
-        Debug.Log("--- Playing Introduction Audio ---");
+        
 
-        if (introGuideClip != null && audioSource != null)
+        isExperimentRunning = true; // Lock the spacebar immediately
+        if (!isDebugMode)
         {
-            audioSource.PlayOneShot(introGuideClip);
-            yield return new WaitForSeconds(introGuideClip.length);
-        }
-        else
-        {
-            Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
+            Debug.Log("--- Playing Introduction Audio ---");
+
+            if (introGuideClip != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(introGuideClip);
+                yield return new WaitForSeconds(introGuideClip.length);
+            }
+            else
+            {
+                Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
+            }
         }
 
         // --- Now, proceed with the original experiment setup ---
@@ -200,7 +207,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
             isExperimentRunning = false; // Release the lock if setup fails
             yield break; // Exit the coroutine
         }
-
+        
         Debug.Log("--- Experiment Starting Now ---");
         currentTrialIndex = 0;
         StartNewTrial();
@@ -246,7 +253,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         if (!isExperimentRunning) return;
 
         phaseTimer += sendRate; // Increment timer by the update interval
-
+        
         switch (currentPhase)
         {
             case ExperimentPhase.AccelDecel0:
@@ -341,6 +348,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         {
             string message = string.Format("udpvelocity {0}", currentVelocity);
             sender.Send(Encoding.ASCII.GetBytes(message), message.Length);
+            Debug.Log("current velocity;" + currentVelocity);
         }
     }
 
