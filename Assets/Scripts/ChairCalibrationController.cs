@@ -22,26 +22,43 @@ public class ChairCalibrationController : MonoBehaviour
     private float sendRate;
 
     [Header("Experiment Settings")]
-    public float AccelDecelDuration = 2.0f;
-    public float Steady90Duration = 60.0f;
     private const int NumberOfTrials = 3;
+    public float PostResponseDelay = 3.0f; // Time after response before next phase
+
+    // NEW: 4 configurable speeds for each steady-state phase
+    [Header("Rotation Speeds (deg/s)")]
+    public float SteadySpeed1 = 90.0f;
+    public float SteadySpeed2 = 60.0f;
+    public float SteadySpeed3 = 30.0f;
+    public float SteadySpeed4 = 15.0f; // Added 4th speed
+
+    // NEW: 5 configurable durations for accel/decel phases
+    [Header("Accel/Decel Durations (s)")]
+    public float AccelToSpeed1Duration = 2.0f;
+    public float DecelToSpeed2Duration = 2.0f;
+    public float DecelToSpeed3Duration = 2.0f;
+    public float DecelToSpeed4Duration = 2.0f; // Added duration for 4th speed transition
+    public float DecelToStopDuration = 2.0f;
+    public float InterTrialInterval = 5.0f; // Time between trials
 
     [Header("Audio Settings")]
     public AudioClip introGuideClip; // Audio guide to play at the start
     public AudioClip beepClip;
     private AudioSource audioSource;
 
-    // --- State Machine for the new trial structure ---
+    // --- Updated State Machine with 4 speed stages ---
     private enum ExperimentPhase
     {
         Idle,
         PlayingIntro,
-        AccelTo90,
-        Steady90,
-        DecelTo60,
-        Steady60,
-        DecelTo30,
-        Steady30,
+        AccelToSpeed1,
+        SteadySpeed1,
+        DecelToSpeed2,
+        SteadySpeed2,
+        DecelToSpeed3,
+        SteadySpeed3,
+        DecelToSpeed4, // New phase
+        SteadySpeed4,  // New phase
         DecelTo0,
         PostRotation,
         Finished
@@ -57,9 +74,10 @@ public class ChairCalibrationController : MonoBehaviour
 
     // --- Data Storage for each metric across all trials ---
     private int currentTrial = 0;
-    private List<float> habituation90_times = new List<float>();
-    private List<float> habituation60_times = new List<float>();
-    private List<float> habituation30_times = new List<float>();
+    private List<float> habituation_speed1_times = new List<float>();
+    private List<float> habituation_speed2_times = new List<float>();
+    private List<float> habituation_speed3_times = new List<float>();
+    private List<float> habituation_speed4_times = new List<float>(); // New list for 4th speed data
     private List<float> postRotationEffect_times = new List<float>();
 
     void Start()
@@ -71,7 +89,6 @@ public class ChairCalibrationController : MonoBehaviour
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
 
-        // Start the experiment with the intro guide
         currentPhase = ExperimentPhase.PlayingIntro;
         StartCoroutine(PlayIntroAndBegin());
     }
@@ -89,10 +106,9 @@ public class ChairCalibrationController : MonoBehaviour
             else
             {
                 Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
-                yield return new WaitForSeconds(1.0f); // Brief pause
+                yield return new WaitForSeconds(1.0f);
             }
         }
-        
         StartExperiment();
     }
 
@@ -104,38 +120,43 @@ public class ChairCalibrationController : MonoBehaviour
 
     void Update()
     {
-        // --- Main State Machine Logic ---
         phaseTimer += Time.deltaTime;
 
         switch (currentPhase)
         {
-            case ExperimentPhase.AccelTo90:
-                UpdateSpeedChange(startSpeed, 90f, AccelDecelDuration, ExperimentPhase.Steady90);
+            // UPDATED: State machine now includes 4 speed stages
+            case ExperimentPhase.AccelToSpeed1:
+                UpdateSpeedChange(startSpeed, SteadySpeed1, AccelToSpeed1Duration, ExperimentPhase.SteadySpeed1);
                 break;
-            case ExperimentPhase.Steady90:
-                UpdateSteadyPhase(Mathf.Infinity, ExperimentPhase.DecelTo60, habituation90_times, false);
+            case ExperimentPhase.SteadySpeed1:
+                UpdateSteadyPhase(ExperimentPhase.DecelToSpeed2, habituation_speed1_times);
                 break;
-            case ExperimentPhase.DecelTo60:
-                UpdateSpeedChange(startSpeed, 60f, AccelDecelDuration, ExperimentPhase.Steady60);
+            case ExperimentPhase.DecelToSpeed2:
+                UpdateSpeedChange(startSpeed, SteadySpeed2, DecelToSpeed2Duration, ExperimentPhase.SteadySpeed2);
                 break;
-            case ExperimentPhase.Steady60:
-                UpdateSteadyPhase(Mathf.Infinity, ExperimentPhase.DecelTo30, habituation60_times, false);
+            case ExperimentPhase.SteadySpeed2:
+                UpdateSteadyPhase(ExperimentPhase.DecelToSpeed3, habituation_speed2_times);
                 break;
-            case ExperimentPhase.DecelTo30:
-                UpdateSpeedChange(startSpeed, 30f, AccelDecelDuration, ExperimentPhase.Steady30);
+            case ExperimentPhase.DecelToSpeed3:
+                UpdateSpeedChange(startSpeed, SteadySpeed3, DecelToSpeed3Duration, ExperimentPhase.SteadySpeed3);
                 break;
-            case ExperimentPhase.Steady30:
-                UpdateSteadyPhase(Mathf.Infinity, ExperimentPhase.DecelTo0, habituation30_times, false);
+            case ExperimentPhase.SteadySpeed3:
+                UpdateSteadyPhase(ExperimentPhase.DecelToSpeed4, habituation_speed3_times);
+                break;
+            case ExperimentPhase.DecelToSpeed4: // New case
+                UpdateSpeedChange(startSpeed, SteadySpeed4, DecelToSpeed4Duration, ExperimentPhase.SteadySpeed4);
+                break;
+            case ExperimentPhase.SteadySpeed4: // New case
+                UpdateSteadyPhase(ExperimentPhase.DecelTo0, habituation_speed4_times);
                 break;
             case ExperimentPhase.DecelTo0:
-                UpdateSpeedChange(startSpeed, 0f, AccelDecelDuration, ExperimentPhase.PostRotation);
+                UpdateSpeedChange(startSpeed, 0f, DecelToStopDuration, ExperimentPhase.PostRotation);
                 break;
             case ExperimentPhase.PostRotation:
-                UpdateSteadyPhase(Mathf.Infinity, ExperimentPhase.Idle, postRotationEffect_times, false);
+                UpdateSteadyPhase(ExperimentPhase.Idle, postRotationEffect_times);
                 break;
         }
 
-        // Continuously send velocity data to the chair
         if (UseChairConnection && sender != null && currentPhase != ExperimentPhase.Idle && currentPhase != ExperimentPhase.Finished)
         {
             SendVelocityToChair();
@@ -151,10 +172,8 @@ public class ChairCalibrationController : MonoBehaviour
         }
         currentTrial++;
         Debug.Log($"--- Starting Trial {currentTrial}/{NumberOfTrials} ---");
-        TransitionToPhase(ExperimentPhase.AccelTo90);
+        TransitionToPhase(ExperimentPhase.AccelToSpeed1);
     }
-
-    // --- Generic Phase Update Functions ---
 
     private void UpdateSpeedChange(float fromSpeed, float toSpeed, float duration, ExperimentPhase nextPhase)
     {
@@ -166,44 +185,30 @@ public class ChairCalibrationController : MonoBehaviour
         }
     }
 
-    private void UpdateSteadyPhase(float duration, ExperimentPhase nextPhase, List<float> dataList, bool isFixedDuration)
+    // UPDATED: Removed duration parameter. Phase ends based on user response.
+    private void UpdateSteadyPhase(ExperimentPhase nextPhase, List<float> dataList)
     {
         if (isResponseTimerRunning)
         {
             responseTimer += Time.deltaTime;
         }
 
-        // Listen for user input, but only if they haven't responded yet in this phase
         if (!isResponseRegistered && Keyboard.current.numpad6Key.wasPressedThisFrame)
         {
             isResponseRegistered = true;
             isResponseTimerRunning = false;
             dataList.Add(responseTimer);
             Debug.Log($"Response recorded at {responseTimer:F2}s for phase {currentPhase}.");
-            
-            //start the 1-second countdown to the next phase
-            
-            StartCoroutine(EndPhaseAfterDelay(1.0f, nextPhase));
-           
-        }
 
-        // For fixed duration phases, transition after the time is up
-        if (isFixedDuration && phaseTimer >= duration)
-        {
-            // If the user didn't respond, record a placeholder value (e.g., -1)
-            if (!isResponseRegistered)
-            {
-                 dataList.Add(-1f);
-                 Debug.LogWarning($"No response recorded for phase {currentPhase}.");
-            }
-            TransitionToPhase(nextPhase);
+            float delay = (nextPhase == ExperimentPhase.Idle) ? InterTrialInterval : PostResponseDelay;
+            StartCoroutine(EndPhaseAfterDelay(delay, nextPhase));
         }
     }
 
     private IEnumerator EndPhaseAfterDelay(float delay, ExperimentPhase nextPhase)
     {
+        Debug.Log($"Response registered. Waiting {delay}s before transitioning to {nextPhase}.");
         yield return new WaitForSeconds(delay);
-        // If the next phase is Idle, it means the trial is over
         if (nextPhase == ExperimentPhase.Idle)
         {
             StartNewTrial();
@@ -214,27 +219,24 @@ public class ChairCalibrationController : MonoBehaviour
         }
     }
 
-    // --- State Transitions and Experiment Flow ---
-
     private void TransitionToPhase(ExperimentPhase nextPhase)
     {
         Debug.Log($"--- Transitioning to: {nextPhase} ---");
         phaseTimer = 0f;
-        startSpeed = currentVelocity; // The start speed for the next phase is the current speed
+        startSpeed = currentVelocity;
         currentPhase = nextPhase;
 
-        // Reset response tracking for phases that require it
-        if (nextPhase == ExperimentPhase.Steady90 || nextPhase == ExperimentPhase.Steady60 ||
-            nextPhase == ExperimentPhase.Steady30 || nextPhase == ExperimentPhase.PostRotation)
+        // UPDATED: Condition now includes the new SteadySpeed4 phase
+        if (nextPhase == ExperimentPhase.SteadySpeed1 || nextPhase == ExperimentPhase.SteadySpeed2 ||
+            nextPhase == ExperimentPhase.SteadySpeed3 || nextPhase == ExperimentPhase.SteadySpeed4 ||
+            nextPhase == ExperimentPhase.PostRotation)
         {
-            //isResponseRegistered = false;
             responseTimer = 0f;
             isResponseTimerRunning = true;
             StartCoroutine(PlayBeepAfterDelay(7.0f));
         }
-        
-        // Send start command at the very beginning of a trial
-        if (nextPhase == ExperimentPhase.AccelTo90)
+
+        if (nextPhase == ExperimentPhase.AccelToSpeed1)
         {
             if (UseChairConnection && sender != null)
             {
@@ -247,11 +249,12 @@ public class ChairCalibrationController : MonoBehaviour
     {
         currentPhase = ExperimentPhase.Finished;
         Debug.Log("--- Calibration Finished! ---");
-        
-        // Calculate and log averages
-        LogAverage("Habituation @ 90deg/s", habituation90_times);
-        LogAverage("Habituation @ 60deg/s", habituation60_times);
-        LogAverage("Habituation @ 30deg/s", habituation30_times);
+
+        // UPDATED: Logging now includes the 4th speed
+        LogAverage($"Habituation @ {SteadySpeed1}deg/s", habituation_speed1_times);
+        LogAverage($"Habituation @ {SteadySpeed2}deg/s", habituation_speed2_times);
+        LogAverage($"Habituation @ {SteadySpeed3}deg/s", habituation_speed3_times);
+        LogAverage($"Habituation @ {SteadySpeed4}deg/s", habituation_speed4_times);
         LogAverage("Post-Rotation Effect", postRotationEffect_times);
 
         Debug.Log("To run another calibration, please restart the scene.");
@@ -260,7 +263,6 @@ public class ChairCalibrationController : MonoBehaviour
 
     private void LogAverage(string metricName, List<float> times)
     {
-        // Filter out non-responses (-1) before calculating average
         var validTimes = times.Where(t => t >= 0).ToList();
         if (validTimes.Any())
         {
@@ -272,8 +274,6 @@ public class ChairCalibrationController : MonoBehaviour
             Debug.Log($"No valid responses recorded for {metricName}.");
         }
     }
-
-    // --- Helper and Communication Functions ---
 
     private void InitSender()
     {
@@ -297,7 +297,7 @@ public class ChairCalibrationController : MonoBehaviour
         byte[] data = Encoding.ASCII.GetBytes(message);
         sender.Send(data, data.Length);
     }
-    
+
     private void StopChair()
     {
         currentVelocity = 0;

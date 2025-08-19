@@ -156,7 +156,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdafe5cfa98e9a146b7b631bf082cb25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseChairConnection: 1
+  UseChairConnection: 0
   PackagePerSecond: 30
   isDebugMode: 1
   RepetitionsPerCondition: 5
@@ -196,10 +196,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6636f6dc34016740a032b5712025d91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UseChairConnection: 1
-  IsDebugMode: 1
+  UseChairConnection: 0
+  IsDebugMode: 0
   PackagePerSecond: 30
-  AccelDecelDuration: 2
-  Steady90Duration: 60
+  PostResponseDelay: 3
+  SteadySpeed1: 90
+  SteadySpeed2: 60
+  SteadySpeed3: 30
+  SteadySpeed4: 15
+  AccelToSpeed1Duration: 2
+  DecelToSpeed2Duration: 2
+  DecelToSpeed3Duration: 2
+  DecelToSpeed4Duration: 2
+  DecelToStopDuration: 2
+  InterTrialInterval: 5
   introGuideClip: {fileID: 8300000, guid: f2edbda637edfb142bfa4fd9cf484481, type: 3}
   beepClip: {fileID: 8300000, guid: c5d9f844105fd2c4eb27e63779eef110, type: 3}

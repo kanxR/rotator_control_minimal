@@ -383,22 +383,22 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
             case ExperimentPhase.AccelDecel0: marker = 1; break;
             case ExperimentPhase.Steady1:
                 marker = 2;
-                Invoke(nameof(PlayBeep), 1.0f); 
+                Invoke(nameof(PlayBeep), 7.0f); 
                 break;
             case ExperimentPhase.AccelDecel1: marker = 3; break;
             case ExperimentPhase.Steady2:
                 marker = 4;
-                Invoke(nameof(PlayBeep), 1.0f);
+                Invoke(nameof(PlayBeep), 7.0f);
                 break;
             case ExperimentPhase.AccelDecel2: marker = 5; break;
             case ExperimentPhase.Steady3:
                 marker = 6;
-                Invoke(nameof(PlayBeep), 1.0f);
+                Invoke(nameof(PlayBeep), 7.0f);
                 break;
             case ExperimentPhase.AccelDecel3: marker = 7; break;
             case ExperimentPhase.Steady4:
                 marker = 8;
-                Invoke(nameof(PlayBeep), 1.0f);
+                Invoke(nameof(PlayBeep), 7.0f);
                 break;
             case ExperimentPhase.AccelDecel4: marker = 9; break;
             case ExperimentPhase.InterTrialInterval:
