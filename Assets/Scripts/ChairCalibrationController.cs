@@ -161,6 +161,12 @@ public class ChairCalibrationController : MonoBehaviour
         {
             SendVelocityToChair();
         }
+
+        if (Keyboard.current.sKey.wasPressedThisFrame)
+        {
+            Debug.Log("S pressed - Emergency Stop");
+            EmergencyStop();
+        }
     }
 
     private void StartNewTrial()
@@ -327,7 +333,17 @@ public class ChairCalibrationController : MonoBehaviour
             isResponseRegistered = false;
         }
     }
+    private void EmergencyStop()
+    {
+        Debug.Log("Rotation stopped completely by user.");
+        //isExperimentRunning = false;
+        currentPhase = ExperimentPhase.Idle;
+        //CancelInvoke(nameof(UpdateSpeedChange));
+        CancelInvoke(nameof(Update));
+        StopChair();
+    }
 
+   
     private void OnApplicationQuit()
     {
         if (sender != null)
