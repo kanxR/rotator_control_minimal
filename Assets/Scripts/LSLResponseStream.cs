@@ -27,22 +27,22 @@ public class LSLResponseStream : MonoBehaviour
 
     void Update()
     {
-        // Send marker: 9 --- Feeling clockwise rotation
-        if (Input.GetKeyDown(KeyCode.Keypad9))
-        {
-            SendMarker(7);
-        }
+        //// Send marker: 9 --- Feeling clockwise rotation
+        //if (Input.GetKeyDown(KeyCode.Keypad9))
+        //{
+        //    SendMarker(9);
+        //}
 
-        // Send marker: 3 --- Feeling counter clockwise rotation
-        if (Input.GetKeyDown(KeyCode.Keypad3))
-        {
-            SendMarker(8);
-        }
+        //// Send marker: 3 --- Feeling counter clockwise rotation
+        //if (Input.GetKeyDown(KeyCode.Keypad3))
+        //{
+        //    SendMarker(10);
+        //}
 
         // Send marker: 6 --- Feeling stable
         if (Input.GetKeyDown(KeyCode.Keypad6))
         {
-            SendMarker(9);
+            SendMarker(11);
         }
     }
 

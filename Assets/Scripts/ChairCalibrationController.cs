@@ -1,4 +1,4 @@
-using UnityEngine;
+    using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Linq;
+using System.IO;
 
 public class ChairCalibrationController : MonoBehaviour
 {
@@ -25,28 +26,24 @@ public class ChairCalibrationController : MonoBehaviour
     private const int NumberOfTrials = 3;
     public float PostResponseDelay = 3.0f; // Time after response before next phase
 
-    // NEW: 4 configurable speeds for each steady-state phase
     [Header("Rotation Speeds (deg/s)")]
     public float SteadySpeed1 = 90.0f;
     public float SteadySpeed2 = 60.0f;
     public float SteadySpeed3 = 30.0f;
-    public float SteadySpeed4 = 15.0f; // Added 4th speed
+    public float StationarySpeed = 0.0f; // Post-rotation
 
-    // NEW: 5 configurable durations for accel/decel phases
     [Header("Accel/Decel Durations (s)")]
     public float AccelToSpeed1Duration = 2.0f;
     public float DecelToSpeed2Duration = 2.0f;
     public float DecelToSpeed3Duration = 2.0f;
-    public float DecelToSpeed4Duration = 2.0f; // Added duration for 4th speed transition
     public float DecelToStopDuration = 2.0f;
-    public float InterTrialInterval = 5.0f; // Time between trials
 
     [Header("Audio Settings")]
     public AudioClip introGuideClip; // Audio guide to play at the start
     public AudioClip beepClip;
     private AudioSource audioSource;
 
-    // --- Updated State Machine with 4 speed stages ---
+    // --- State Machine with 3 speed stages ---
     private enum ExperimentPhase
     {
         Idle,
@@ -57,10 +54,8 @@ public class ChairCalibrationController : MonoBehaviour
         SteadySpeed2,
         DecelToSpeed3,
         SteadySpeed3,
-        DecelToSpeed4, // New phase
-        SteadySpeed4,  // New phase
-        DecelTo0,
-        PostRotation,
+        DecelToStationary,
+        Stationary,
         Finished
     }
 
@@ -77,7 +72,6 @@ public class ChairCalibrationController : MonoBehaviour
     private List<float> habituation_speed1_times = new List<float>();
     private List<float> habituation_speed2_times = new List<float>();
     private List<float> habituation_speed3_times = new List<float>();
-    private List<float> habituation_speed4_times = new List<float>(); // New list for 4th speed data
     private List<float> postRotationEffect_times = new List<float>();
 
     void Start()
@@ -124,7 +118,6 @@ public class ChairCalibrationController : MonoBehaviour
 
         switch (currentPhase)
         {
-            // UPDATED: State machine now includes 4 speed stages
             case ExperimentPhase.AccelToSpeed1:
                 UpdateSpeedChange(startSpeed, SteadySpeed1, AccelToSpeed1Duration, ExperimentPhase.SteadySpeed1);
                 break;
@@ -141,18 +134,12 @@ public class ChairCalibrationController : MonoBehaviour
                 UpdateSpeedChange(startSpeed, SteadySpeed3, DecelToSpeed3Duration, ExperimentPhase.SteadySpeed3);
                 break;
             case ExperimentPhase.SteadySpeed3:
-                UpdateSteadyPhase(ExperimentPhase.DecelToSpeed4, habituation_speed3_times);
+                UpdateSteadyPhase(ExperimentPhase.DecelToStationary, habituation_speed3_times);
                 break;
-            case ExperimentPhase.DecelToSpeed4: // New case
-                UpdateSpeedChange(startSpeed, SteadySpeed4, DecelToSpeed4Duration, ExperimentPhase.SteadySpeed4);
+            case ExperimentPhase.DecelToStationary:
+                UpdateSpeedChange(startSpeed, StationarySpeed, DecelToStopDuration, ExperimentPhase.Stationary);
                 break;
-            case ExperimentPhase.SteadySpeed4: // New case
-                UpdateSteadyPhase(ExperimentPhase.DecelTo0, habituation_speed4_times);
-                break;
-            case ExperimentPhase.DecelTo0:
-                UpdateSpeedChange(startSpeed, 0f, DecelToStopDuration, ExperimentPhase.PostRotation);
-                break;
-            case ExperimentPhase.PostRotation:
+            case ExperimentPhase.Stationary:
                 UpdateSteadyPhase(ExperimentPhase.Idle, postRotationEffect_times);
                 break;
         }
@@ -191,7 +178,7 @@ public class ChairCalibrationController : MonoBehaviour
         }
     }
 
-    // UPDATED: Removed duration parameter. Phase ends based on user response.
+    // Phase ends based on user response.
     private void UpdateSteadyPhase(ExperimentPhase nextPhase, List<float> dataList)
     {
         if (isResponseTimerRunning)
@@ -206,7 +193,7 @@ public class ChairCalibrationController : MonoBehaviour
             dataList.Add(responseTimer);
             Debug.Log($"Response recorded at {responseTimer:F2}s for phase {currentPhase}.");
 
-            float delay = (nextPhase == ExperimentPhase.Idle) ? InterTrialInterval : PostResponseDelay;
+            float delay = (nextPhase == ExperimentPhase.Idle) ? 5.0f : PostResponseDelay;
             StartCoroutine(EndPhaseAfterDelay(delay, nextPhase));
         }
     }
@@ -232,10 +219,8 @@ public class ChairCalibrationController : MonoBehaviour
         startSpeed = currentVelocity;
         currentPhase = nextPhase;
 
-        // UPDATED: Condition now includes the new SteadySpeed4 phase
         if (nextPhase == ExperimentPhase.SteadySpeed1 || nextPhase == ExperimentPhase.SteadySpeed2 ||
-            nextPhase == ExperimentPhase.SteadySpeed3 || nextPhase == ExperimentPhase.SteadySpeed4 ||
-            nextPhase == ExperimentPhase.PostRotation)
+            nextPhase == ExperimentPhase.SteadySpeed3 || nextPhase == ExperimentPhase.Stationary)
         {
             responseTimer = 0f;
             isResponseTimerRunning = true;
@@ -256,12 +241,11 @@ public class ChairCalibrationController : MonoBehaviour
         currentPhase = ExperimentPhase.Finished;
         Debug.Log("--- Calibration Finished! ---");
 
-        // UPDATED: Logging now includes the 4th speed
         LogAverage($"Habituation @ {SteadySpeed1}deg/s", habituation_speed1_times);
         LogAverage($"Habituation @ {SteadySpeed2}deg/s", habituation_speed2_times);
         LogAverage($"Habituation @ {SteadySpeed3}deg/s", habituation_speed3_times);
-        LogAverage($"Habituation @ {SteadySpeed4}deg/s", habituation_speed4_times);
         LogAverage("Post-Rotation Effect", postRotationEffect_times);
+        ExportResultsToCSV();
 
         Debug.Log("To run another calibration, please restart the scene.");
         StopChair();
@@ -336,14 +320,40 @@ public class ChairCalibrationController : MonoBehaviour
     private void EmergencyStop()
     {
         Debug.Log("Rotation stopped completely by user.");
-        //isExperimentRunning = false;
         currentPhase = ExperimentPhase.Idle;
-        //CancelInvoke(nameof(UpdateSpeedChange));
         CancelInvoke(nameof(Update));
         StopChair();
     }
 
-   
+    private void ExportResultsToCSV(string filename = "CalibrationResults.csv")
+    {
+        var lines = new List<string>();
+        lines.Add("Metric,Trial,Duration(s)");
+
+        void AddLines(string metric, List<float> times)
+        {
+            for (int i = 0; i < times.Count; i++)
+            {
+                lines.Add($"{metric},{i + 1},{times[i]:F2}");
+            }
+            if (times.Count > 0)
+            {
+                float avg = times.Average();
+                lines.Add($"{metric},Average,{avg:F2}");
+            }
+        }
+
+        AddLines($"Habituation_{SteadySpeed1}deg_s", habituation_speed1_times);
+        AddLines($"Habituation_{SteadySpeed2}deg_s", habituation_speed2_times);
+        AddLines($"Habituation_{SteadySpeed3}deg_s", habituation_speed3_times);
+        AddLines("PostRotationEffect", postRotationEffect_times);
+
+        string path = Path.Combine(Application.dataPath, filename);
+        File.WriteAllLines(path, lines);
+
+        Debug.Log($"Calibration results exported to: {path}");
+    }
+
     private void OnApplicationQuit()
     {
         if (sender != null)

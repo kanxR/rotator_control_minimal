@@ -25,35 +25,35 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
     private UdpClient sender;
     private float sendRate;
 
-    public bool isDebugMode = true;
+    //public bool isDebugMode = true;
 
     [Header("Experiment Settings")]
     public int RepetitionsPerCondition = 5;
-    public float InterTrialInterval = 10.0f;
+    
 
     [Header("Steady Speeds (deg/s)")]
-    public float SteadySpeed1 = 120.0f;
-    public float SteadySpeed2 = 90.0f;
-    public float SteadySpeed3 = 60.0f;
-    public float SteadySpeed4 = 30.0f;
+    public float SteadySpeed1 = 90.0f;
+    public float SteadySpeed2 = 60.0f;
+    public float SteadySpeed3 = 30.0f;
+    public float StationarySpeed = 0.0f;
 
     [Header("Steady Durations (s)")]
-    public float SteadyDuration1 = 10.0f;
-    public float SteadyDuration2 = 10.0f;
-    public float SteadyDuration3 = 10.0f;
-    public float SteadyDuration4 = 10.0f;
+    public float SteadyDuration1 = 20.0f;
+    public float SteadyDuration2 = 20.0f;
+    public float SteadyDuration3 = 20.0f;
+    public float StationaryDuration = 20.0f;
+
 
     [Header("Acceleration/Deceleration Durations (s)")]
     public float AccelDecelDuration0 = 2.0f; // Before Steady 1
     public float AccelDecelDuration1 = 2.0f; // Before Steady 2
     public float AccelDecelDuration2 = 2.0f; // Before Steady 3
-    public float AccelDecelDuration3 = 2.0f; // Before Steady 4
-    public float AccelDecelDuration4 = 2.0f; // To stop
+    public float AccelDecelDuration3 = 2.0f; // To stop
 
-    [Header("Audio Settings")]
-    public AudioClip introGuideClip; // Audio guide to play at the start
-    public AudioClip beepClip;
-    private AudioSource audioSource;
+    //[Header("Audio Settings")]
+    //public AudioClip introGuideClip; // Audio guide to play at the start
+    ////public AudioClip beepClip;
+    //private AudioSource audioSource;
 
     // Enum for trial conditions
     private enum TrialCondition
@@ -73,9 +73,7 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         AccelDecel2,
         Steady3,
         AccelDecel3,
-        Steady4,
-        AccelDecel4,
-        InterTrialInterval
+        Stationary
     }
 
     private List<TrialCondition> trialList;
@@ -101,23 +99,24 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         sendRate = 1.0f / PackagePerSecond;
 
         // Initialize arrays for easy access
-        steadySpeeds = new float[] { SteadySpeed1, SteadySpeed2, SteadySpeed3, SteadySpeed4 };
-        steadyDurations = new float[] { SteadyDuration1, SteadyDuration2, SteadyDuration3, SteadyDuration4 };
-        accelDecelDurations = new float[] { AccelDecelDuration0, AccelDecelDuration1, AccelDecelDuration2, AccelDecelDuration3, AccelDecelDuration4 };
+        steadySpeeds = new float[] { SteadySpeed1, SteadySpeed2, SteadySpeed3, StationarySpeed};
+        steadyDurations = new float[] { SteadyDuration1, SteadyDuration2, SteadyDuration3,StationaryDuration};
+        accelDecelDurations = new float[] { AccelDecelDuration0, AccelDecelDuration1, AccelDecelDuration2, AccelDecelDuration3};
 
-        // Setup AudioSource
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
-        audioSource.playOnAwake = false;
+        //// Setup AudioSource
+        //audioSource = GetComponent<AudioSource>();
+        //if (audioSource == null)
+        //{
+        //    audioSource = gameObject.AddComponent<AudioSource>();
+        //}
+        //audioSource.playOnAwake = false;
     }
 
     private void Update()
     {
         if (Keyboard.current.spaceKey.wasPressedThisFrame && !isExperimentRunning)
         {
+            
             // The coroutine will now handle the experiment start sequence
             StartCoroutine(StartExperimentCoroutine());
         }
@@ -185,20 +184,20 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         
 
         isExperimentRunning = true; // Lock the spacebar immediately
-        if (!isDebugMode)
-        {
-            Debug.Log("--- Playing Introduction Audio ---");
+        //if (!isDebugMode)
+        //{
+        //    Debug.Log("--- Playing Introduction Audio ---");
 
-            if (introGuideClip != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(introGuideClip);
-                yield return new WaitForSeconds(introGuideClip.length);
-            }
-            else
-            {
-                Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
-            }
-        }
+        //    if (introGuideClip != null && audioSource != null)
+        //    {
+        //        audioSource.PlayOneShot(introGuideClip);
+        //        yield return new WaitForSeconds(introGuideClip.length);
+        //    }
+        //    else
+        //    {
+        //        Debug.LogWarning("No intro guide clip assigned. Starting immediately.");
+        //    }
+        //}
 
         // --- Now, proceed with the original experiment setup ---
         if (trialList == null || trialList.Count == 0)
@@ -233,7 +232,8 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
             Mathf.Abs(SteadySpeed1) * direction,
             Mathf.Abs(SteadySpeed2) * direction,
             Mathf.Abs(SteadySpeed3) * direction,
-            Mathf.Abs(SteadySpeed4) * direction
+            0.0f  // Stationary phase
+            
         };
         steadySpeeds = directedSteadySpeeds;
 
@@ -312,31 +312,14 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
                 if (phaseTimer >= accelDecelDurations[3])
                 {
                     currentVelocity = steadySpeeds[3];
-                    TransitionToPhase(ExperimentPhase.Steady4);
+                    TransitionToPhase(ExperimentPhase.Stationary);
                 }
                 break;
+            
 
-            case ExperimentPhase.Steady4:
-                currentVelocity = steadySpeeds[3];
-                if (phaseTimer >= steadyDurations[3])
-                {
-                    TransitionToPhase(ExperimentPhase.AccelDecel4);
-                }
-                break;
-
-            case ExperimentPhase.AccelDecel4:
-                currentVelocity = RaisedCosineSpeed(startSpeed, 0, phaseTimer, accelDecelDurations[4]);
-                if (phaseTimer >= accelDecelDurations[4])
-                {
-                    currentVelocity = 0; // Ensure chair is stopped
-                    SendMarker(6);
-                    TransitionToPhase(ExperimentPhase.InterTrialInterval);
-                }
-                break;
-
-            case ExperimentPhase.InterTrialInterval:
+            case ExperimentPhase.Stationary:
                 currentVelocity = 0;
-                if (phaseTimer >= InterTrialInterval)
+                if (phaseTimer >= steadyDurations[3])
                 {
                     currentTrialIndex++;
                     StartNewTrial();
@@ -360,14 +343,14 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
         return start + (end - start) * cosValue;
     }
 
-    private void PlayBeep()
-    {
-        if (beepClip != null && audioSource != null)
-        {
-            audioSource.PlayOneShot(beepClip);
-            Debug.Log("Beep sound played.");
-        }
-    }
+    //private void PlayBeep()
+    //{
+    //    if (beepClip != null && audioSource != null)
+    //    {
+    //        audioSource.PlayOneShot(beepClip);
+    //        Debug.Log("Beep sound played.");
+    //    }
+    //}
 
     private void TransitionToPhase(ExperimentPhase nextPhase)
     {
@@ -383,26 +366,22 @@ public class RotatorSimpleProfile_WithAudio : MonoBehaviour
             case ExperimentPhase.AccelDecel0: marker = 1; break;
             case ExperimentPhase.Steady1:
                 marker = 2;
-                Invoke(nameof(PlayBeep), 7.0f); 
+                //Invoke(nameof(PlayBeep), 7.0f); 
                 break;
             case ExperimentPhase.AccelDecel1: marker = 3; break;
             case ExperimentPhase.Steady2:
                 marker = 4;
-                Invoke(nameof(PlayBeep), 7.0f);
+                //Invoke(nameof(PlayBeep), 7.0f);
                 break;
             case ExperimentPhase.AccelDecel2: marker = 5; break;
             case ExperimentPhase.Steady3:
                 marker = 6;
-                Invoke(nameof(PlayBeep), 7.0f);
+                //Invoke(nameof(PlayBeep), 7.0f);
                 break;
             case ExperimentPhase.AccelDecel3: marker = 7; break;
-            case ExperimentPhase.Steady4:
-                marker = 8;
-                Invoke(nameof(PlayBeep), 7.0f);
-                break;
-            case ExperimentPhase.AccelDecel4: marker = 9; break;
-            case ExperimentPhase.InterTrialInterval:
-                Debug.Log($"--- Inter-trial rest for {InterTrialInterval} seconds ---");
+        
+            case ExperimentPhase.Stationary:marker = 8;
+                Debug.Log($"--- Stationary phase for {steadyDurations[3]} seconds ---");
                 break;
         }
 
