@@ -297,8 +297,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 770481257890217457, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
+      propertyPath: PostResponseDelay
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 770481257890217457, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
       propertyPath: InterTrialInterval
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 770481257890217457, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
+        type: 3}
+      propertyPath: UseChairConnection
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3546787460228829891, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
@@ -393,7 +403,7 @@ PrefabInstance:
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
       propertyPath: UseChairConnection
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8105643234446302385, guid: 3a69fe98a8a8bbe4c9234cc5d23c4041,
         type: 3}
